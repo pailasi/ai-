@@ -1,7 +1,5 @@
 # Sci-Copilot - AI科研助手
 
-![Sci-Copilot Logo](https://via.placeholder.com/150x50/667eea/ffffff?text=Sci-Copilot)
-
 一个全流程AI科研辅助平台，通过API驱动的智能绘图、深度文献分析和自动化流程图生成，将前沿大型语言模型（LLM）无缝集成到科研工作流中。
 
 ## 🚀 项目特色
@@ -262,14 +260,6 @@ sci-copilot/
 - PubMed/NCBI API
 - Mermaid.js
 - FastAPI
-- 所有开源贡献者
-
-## 📞 联系我们
-
-- 项目地址: [GitHub Repository](https://github.com/yourusername/sci-copilot)
-- 问题反馈: [Issues](https://github.com/yourusername/sci-copilot/issues)
-- 邮箱: your.email@example.com
-
 ---
 
 **让AI为科研加速！🚀**
