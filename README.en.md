@@ -18,8 +18,6 @@ The project now uses a single canonical entrypoint: FastAPI serves both the API 
 - Retrieval mode: semantic vector retrieval (Chroma) with keyword fallback
 - PDF extraction: PyMuPDF
 - Text chunking: `langchain-text-splitters`
-- Text providers: Codex/OpenAI-compatible, Google GenAI, OpenRouter fallback
-- Figure providers: IMG primary, then Codex/OpenAI-compatible, then GLM fallback
 - Optional diagram rendering: Mermaid CLI (`mmdc`)
 
 
@@ -42,8 +40,7 @@ Sci-Copilot/
 │  ├─ requirements.txt
 │  └─ .env.example
 ├─ frontend/
-│  ├─ index.html
-│  └─ newindex.html
+│  └─ index.html
 ├─ docs/
 ├─ start.bat
 ├─ start.sh
