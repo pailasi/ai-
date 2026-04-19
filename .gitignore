@@ -141,6 +141,17 @@ secrets.json
 # Uploads
 uploads/
 temp_files/
+backend/.env
+backend/chroma_db/
+backend/data/
+backend/diagrams/
+backend/venv/
+backend/venv311/
+backend/test_workspace/
+backend/__pycache__/
+backend/*.err
+data/
+frontend/.DS_Store
 
 # Docker
 .dockerignore

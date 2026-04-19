@@ -1,23 +1,16 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  sci-copilot-backend:
-    build: .
+  sci-copilot:
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    env_file:
-      - backend/.env
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      HOST: ${HOST:-0.0.0.0}
+      PORT: ${PORT:-8000}
     volumes:
-      - ./backend:/app
-    restart: unless-stopped
-    
-  sci-copilot-frontend:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-    volumes:
-      - ./frontend:/usr/share/nginx/html
-      - ./nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - sci-copilot-backend
+      - ./backend/data:/app/backend/data
     restart: unless-stopped

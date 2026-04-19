@@ -1,265 +1,447 @@
-# Sci-Copilot - AI科研助手
+﻿# Sci-Copilot
 
-一个全流程AI科研辅助平台，通过API驱动的智能绘图、深度文献分析和自动化流程图生成，将前沿大型语言模型（LLM）无缝集成到科研工作流中。
+Sci-Copilot is a research assistant prototype that combines four practical workflows in one local app:
 
-## 🚀 项目特色
+- Upload PDF papers into a local workspace
+- Build a searchable knowledge base from those papers
+- Ask grounded questions against indexed content
+- Generate Mermaid-based research diagrams, with optional PNG preview
 
-- **AI科研绘图**: 文本生图、图生图优化，支持科学插图风格
-- **智能流程图**: 自动生成Mermaid.js流程图，支持SVG导出
-- **文献智能分析**: 集成PubMed API，支持DOI/PMID搜索和AI分析
-- **多模态支持**: 支持PDF上传、图像处理、文本分析
-- **可配置API**: 支持Gemini、Claude、OpenAI等多种LLM模型
+The project now uses a single canonical entrypoint: FastAPI serves both the API and the web UI.
 
-## 📋 功能概览
+## Current Architecture
 
-### 🎨 AI科研绘图
-- **文本生图**: 输入科研文本，生成科学插图
-- **图生图**: 上传图像，通过AI进行优化和编辑
-- **多种风格**: 支持科学插图、现代风格、简约风格等
+- Backend: FastAPI app factory + modular route package (`backend/api`)
+- Frontend: static HTML/CSS/JavaScript served by FastAPI
+- Retrieval mode: semantic vector retrieval (Chroma) with keyword fallback
+- PDF extraction: PyMuPDF
+- Text chunking: `langchain-text-splitters`
+- Text providers: Codex/OpenAI-compatible, Google GenAI, OpenRouter fallback
+- Figure providers: IMG primary, then Codex/OpenAI-compatible, then GLM fallback
+- Optional diagram rendering: Mermaid CLI (`mmdc`)
 
-### 📊 AI流程图生成
-- **智能生成**: 基于文本描述生成Mermaid.js流程图
-- **多种布局**: 支持从上到下、从左到右等布局
-- **SVG导出**: 生成可编辑的SVG格式图表
 
-### 📚 智能文献处理
-- **PubMed集成**: 通过DOI、PMID或关键词搜索文献
-- **AI分析**: 自动总结文献内容，提取关键信息
-- **文献问答**: 基于文献内容回答问题
-- **PDF处理**: 上传PDF文件进行内容分析
+## Project Layout
 
-## 🛠️ 技术架构
-
-### 后端技术栈
-- **Python 3.9+**: 主要编程语言
-- **FastAPI**: 高性能API框架
-- **Pydantic**: 数据验证和序列化
-- **Requests**: HTTP客户端
-- **PDFPlumber**: PDF文本提取
-
-### 前端技术栈
-- **HTML5 + CSS3**: 现代Web标准
-- **JavaScript ES6+**: 前端交互逻辑
-- **Mermaid.js**: 流程图渲染
-
-### 支持的AI模型
-- **Google Gemini**: 文本生成和分析
-- **Anthropic Claude**: 高质量文本处理
-- **OpenAI GPT**: 通用文本生成
-- **DALL-E 3**: 图像生成和编辑
-
-## 🚀 快速开始
-
-### 方法一：使用启动脚本（推荐）
-
-#### Linux/Mac
-```bash
-# 克隆项目
-git clone https://github.com/yourusername/sci-copilot.git
-cd sci-copilot
-
-# 给启动脚本添加执行权限
-chmod +x start.sh
-
-# 运行启动脚本
-./start.sh
+```text
+Sci-Copilot/
+├─ backend/
+│  ├─ api/
+│  │  ├─ app.py
+│  │  ├─ dependencies.py
+│  │  └─ routers/
+│  ├─ main.py
+│  ├─ config.py
+│  ├─ schemas.py
+│  ├─ services.py
+│  ├─ reasoning/
+│  ├─ skills/
+│  ├─ workflows/
+│  ├─ requirements.txt
+│  └─ .env.example
+├─ frontend/
+│  ├─ index.html
+│  └─ newindex.html
+├─ docs/
+├─ start.bat
+├─ start.sh
+├─ Dockerfile
+├─ docker-compose.yml
+└─ README.md
 ```
 
-#### Windows
-```batch
-# 克隆项目
-git clone https://github.com/yourusername/sci-copilot.git
-cd sci-copilot
+Runtime/local-only directories live under `backend/` as needed, including `data/`, `diagrams/`, `chroma_db/`, and local virtual environments. They are not part of the source module layout.
 
-# 运行启动脚本
+
+## Quick Start
+
+### Windows
+
+```bat
 start.bat
 ```
 
-### 方法二：手动启动
+### macOS / Linux
 
-#### 1. 环境准备
 ```bash
-# 创建虚拟环境
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# 或
-venv\Scripts\activate.bat  # Windows
+chmod +x start.sh
+./start.sh
+```
 
-# 安装依赖
+Then open [http://localhost:8000](http://localhost:8000).
+
+## Manual Run
+
+```bash
 cd backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-```
-
-#### 2. 配置API密钥
-```bash
-# 复制环境变量模板
-cp .env.example .env
-
-# 编辑.env文件，添加您的API密钥
-# GEMINI_API_KEY=your_gemini_api_key
-# CLAUDE_API_KEY=your_claude_api_key
-# OPENAI_API_KEY=your_openai_api_key
-# PUBMED_API_KEY=your_pubmed_api_key
-```
-
-#### 3. 启动服务
-```bash
-# 启动后端服务
+cp .env.example .env      # Windows: copy .env.example .env
 python main.py
-
-# 在浏览器中打开前端界面
-# 访问 frontend/index.html
 ```
 
-### 方法三：Docker部署
+## Environment
 
-```bash
-# 构建并启动服务
-docker-compose up -d
-
-# 访问应用
-# 前端: http://localhost
-# 后端API: http://localhost:8000
-# API文档: http://localhost:8000/docs
-```
-
-## 📝 API密钥配置
-
-### 获取API密钥
-
-1. **Google Gemini**
-   - 访问 [Google AI Studio](https://makersuite.google.com/app/apikey)
-   - 创建API密钥
-
-2. **Anthropic Claude**
-   - 访问 [Anthropic Console](https://console.anthropic.com/)
-   - 创建API密钥
-
-3. **OpenAI**
-   - 访问 [OpenAI Platform](https://platform.openai.com/api-keys)
-   - 创建API密钥
-
-4. **PubMed (可选)**
-   - 访问 [NCBI API Keys](https://www.ncbi.nlm.nih.gov/account/settings/)
-   - 创建API密钥
-
-### 配置环境变量
-
-在 `backend/.env` 文件中配置：
+Configure `backend/.env` as needed:
 
 ```env
-# API Keys
-GEMINI_API_KEY=your_gemini_api_key_here
-CLAUDE_API_KEY=your_claude_api_key_here
-OPENAI_API_KEY=your_openai_api_key_here
-PUBMED_API_KEY=your_pubmed_api_key_here
+APP_ENV=development
+HOST=127.0.0.1
+PORT=8000
+MAX_UPLOAD_SIZE_MB=25
+API_ACCESS_KEY=
+STATUS_INCLUDE_DEBUG=true
 
-# API Base URLs (可选，使用代理时修改)
-GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
-CLAUDE_BASE_URL=https://api.anthropic.com/v1
-OPENAI_BASE_URL=https://api.openai.com/v1
+CODEX_API_KEY=
+CODEX_BASE_URL=https://api.openai.com/v1
+CODEX_TEXT_MODEL=gpt-4.1-mini
+CODEX_FIGURE_MODEL=gpt-image-1
+
+IMG_API_KEY=
+IMG_BASE_URL=
+IMG_FIGURE_MODEL=
+
+GOOGLE_API_KEY=
+GOOGLE_MODEL=models/gemma-3-1b-it
+ANALYSIS_MODEL=models/gemma-3-1b-it
+MENTOR_MODEL=models/gemma-3-1b-it
+DIAGRAM_MODEL=models/gemma-3-1b-it
+
+OPEN_API_KEY=
+OPEN_MODEL=google/gemini-2.5-flash
+
+TEXT_PROVIDER_ORDER=codex,google,openrouter
+FIGURE_PROVIDER_ORDER=img,codex,glm
+TEXT_MODEL_MAP={}
+FIGURE_MODEL_MAP={}
+DISABLE_PROVIDERS=
+
+GLM_API_KEY=
+GLM_MODEL=glm-4v-flash
+FIGURE_MODEL=cogview-3-plus
+
+ENABLE_VECTOR_STORE=true
+EMBEDDINGS_MODEL=all-MiniLM-L6-v2
 ```
 
-## 📖 使用指南
+Recommended routing:
 
-### 文本生图
-1. 选择"文本生图"标签页
-2. 输入科研文本内容（如论文摘要）
-3. 选择绘图风格和参数
-4. 点击"生成图像"
+- Text tasks (`/api/chat`, mentor dispatch/review, rewrite, diagram text generation): Codex primary when configured, otherwise Google with OpenRouter fallback
+- Figure generation (`/api/figure`): IMG primary, then Codex/OpenAI-compatible, then GLM fallback
 
-### 图生图
-1. 选择"图生图"标签页
-2. 上传基础图像
-3. 输入修改描述
-4. 点击"编辑图像"
+Global routing policy knobs:
 
-### 流程图生成
-1. 选择"流程图"标签页
-2. 描述流程步骤
-3. 选择流程方向和风格
-4. 点击"生成流程图"
+- `TEXT_PROVIDER_ORDER`: comma-separated text provider sequence
+- `FIGURE_PROVIDER_ORDER`: comma-separated figure provider sequence
+- `TEXT_MODEL_MAP`: JSON provider->model override map
+- `FIGURE_MODEL_MAP`: JSON provider->model override map
+- `DISABLE_PROVIDERS`: comma-separated provider IDs to temporarily disable
 
-### 文献分析
-1. 选择"文献分析"标签页
-2. 根据需要选择子功能：
-   - **搜索**: 使用关键词搜索PubMed
-   - **分析**: 输入DOI/PMID进行文献分析
-   - **问答**: 基于文献内容回答问题
-   - **PDF**: 上传PDF文件进行分析
+Example:
 
-## 🔧 API文档
-
-启动后端服务后，访问以下地址查看详细的API文档：
-
-- **交互式API文档**: http://localhost:8000/docs
-- **ReDoc文档**: http://localhost:8000/redoc
-
-### 主要API端点
-
-- `POST /api/v1/illustrator/text-to-image` - 文本生图
-- `POST /api/v1/illustrator/image-to-image` - 图生图
-- `POST /api/v1/flowchart/generate` - 生成流程图
-- `POST /api/v1/literature/analyze` - 文献分析
-- `POST /api/v1/literature/qa` - 文献问答
-- `GET /api/v1/literature/search` - 搜索文献
-
-## 📁 项目结构
-
-```
-sci-copilot/
-├── backend/                 # 后端代码
-│   ├── app/
-│   │   ├── api/            # API路由
-│   │   ├── core/           # 核心配置
-│   │   ├── models/         # 数据模型
-│   │   └── services/       # 业务逻辑
-│   ├── utils/              # 工具函数
-│   │   ├── api_caller.py   # API调用客户端
-│   │   └── pubmed_api.py   # PubMed API集成
-│   ├── main.py             # 应用入口
-│   ├── requirements.txt    # Python依赖
-│   └── .env.example        # 环境变量模板
-├── frontend/               # 前端代码
-│   └── index.html          # 单页面应用
-├── docs/                   # 文档
-├── docker-compose.yml      # Docker配置
-├── Dockerfile             # Docker镜像
-├── nginx.conf             # Nginx配置
-├── start.sh               # Linux/Mac启动脚本
-├── start.bat              # Windows启动脚本
-└── README.md              # 项目说明
+```env
+TEXT_PROVIDER_ORDER=openrouter,google,codex
+FIGURE_PROVIDER_ORDER=img,glm,codex
+TEXT_MODEL_MAP={"openrouter":"google/gemini-2.5-flash","google":"models/gemma-3-1b-it"}
+FIGURE_MODEL_MAP={"img":"gemini-2.5-flash-image-preview","glm":"cogview-3-plus"}
+DISABLE_PROVIDERS=codex
 ```
 
-## 🚨 注意事项
+If the external providers are unavailable, text and figure endpoints still fall back to degraded local behavior where supported:
 
-1. **API密钥安全**: 请妥善保管API密钥，不要提交到版本控制系统
-2. **使用限制**: 各AI服务有调用限制，请合理使用
-3. **网络连接**: 确保网络可以访问相关AI服务
-4. **文件大小**: 上传的图像和PDF文件建议小于10MB
+- Chat returns a clear fallback message
+- Diagram generation returns a fallback Mermaid template
+- Figure generation returns a fallback SVG/placeholder result when the image provider chain is unavailable
 
-## 🤝 贡献指南
+If `API_ACCESS_KEY` is set, all `/api/*` routes require `X-API-Key` with the same value.
 
-欢迎贡献代码！请遵循以下步骤：
 
-1. Fork 项目
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 创建Pull Request
+## API Endpoints
 
-## 📄 许可证
+- `GET /`
+- `GET /health`
+- `GET /api/status`
+- `POST /api/documents/upload`
+- `POST /api/knowledge/ingest`
+- `GET /api/documents`
+- `POST /api/chat`
+- `POST /api/diagram`
+- `POST /api/figure`
+- `GET /api/figure/templates`
+- `POST /api/writing/help`
+- `POST /api/reasoning/method-compare`
+- `POST /api/writing/validate`
+- `POST /api/writing/rewrite`
+- `POST /api/workflows/run`
+- `GET /api/workflows/{session_id}`
+- `POST /api/workflows/{session_id}/resume`
+- `POST /api/workflows/{session_id}/export`
 
-本项目采用 MIT 许可证。详情请参见 [LICENSE](LICENSE) 文件。
+Interactive docs are available at [http://localhost:8000/docs](http://localhost:8000/docs).
 
-## 🙏 致谢
+## Generation Parameters (MVP)
 
-- Google Gemini API
-- Anthropic Claude API
-- OpenAI API
-- PubMed/NCBI API
-- Mermaid.js
-- FastAPI
----
+`/api/diagram` and `/api/figure` now support optional advanced parameters:
 
-**让AI为科研加速！🚀**
+- `style`: `academic` | `minimal` | `presentation`
+- `detail_level`: `low` | `medium` | `high`
+- `language`: `zh` | `en`
+- `width`: optional image width (`512-2400`)
+- `height`: optional image height (`512-2400`)
+- `feedback`: optional regeneration hint list (`layout` / `elements` / `text` / `style`)
+
+Example:
+
+```json
+{
+  "prompt": "Draw a paper method pipeline",
+  "style": "academic",
+  "detail_level": "high",
+  "language": "en",
+  "width": 1600,
+  "height": 900
+}
+```
+
+If advanced parameters are not provided, existing behavior remains compatible.
+
+Both endpoints now return structured reliability fields:
+- `error_code`
+- `error_hint`
+- `retryable`
+- `degraded`
+- `model_provider`
+- `model_name`
+- `fallback_chain`
+
+## Writing Assist and Manuscript Check
+
+### `POST /api/writing/help`
+
+Request:
+
+```json
+{
+  "topic": "RAG for scientific writing",
+  "stage": "draft",
+  "question": "How should I organize my method section?",
+  "document_scope": []
+}
+```
+
+Response includes:
+- `recommendation`: structured writing direction (MVP template + evidence aware)
+- `evidence`: source snippets with trace fields (`source`, `page`, `chunk_id`)
+- `draft_template`: reusable paragraph template
+- `risk_notes`: writing risks to avoid
+
+### `POST /api/writing/validate`
+
+Request:
+
+```json
+{
+  "section": "method",
+  "text": "Your manuscript paragraph..."
+}
+```
+
+Response includes:
+- `summary`
+- `issues[]` with `category`, `severity`, `suggestion`, and `rewrite_example`
+
+### `POST /api/writing/rewrite`
+
+Use this endpoint to rewrite a paragraph with model-driven style polishing and actionable notes.
+
+### Figure Templates
+
+Use `GET /api/figure/templates` to fetch supported template IDs:
+- `method_framework`
+- `experiment_flow`
+- `comparison`
+- `ablation`
+
+## Workflow Mode (Beta)
+
+Sci-Copilot now provides a built-in workflow:
+`question_to_submission_paragraph`
+
+This workflow chains:
+1. Mentor dispatch (导师AI编排任务)
+2. Analysis agent (论文分析与证据提取)
+3. Writer agent (段落撰写)
+4. Manuscript validation
+5. Figure agent (科研配图)
+6. Citation agent (证据清单)
+7. Mentor review (导师AI最终评审)
+
+Example run request:
+
+```json
+{
+  "workflow_id": "question_to_submission_paragraph",
+  "topic": "RAG for scientific writing",
+  "stage": "draft",
+  "question": "How should I structure method and experiment sections?",
+  "section": "method"
+}
+```
+
+This orchestration runs automatically after `run`, with no manual step required.
+Mentor AI uses an internal prompt-tuned model interface (configure `MENTOR_MODEL` in `backend/.env`; falls back to `ANALYSIS_MODEL`).
+Frontend now provides a lightweight entry in the left workspace panel: **自动编排（Beta）** (`一键编排` / `导出编排`).
+
+When workflow status is `needs_revision`, you must revise and re-validate high-risk issues before export.
+`POST /api/workflows/{session_id}/resume` accepts:
+
+```json
+{
+  "overrides": {
+    "revised_draft": "your revised paragraph..."
+  }
+}
+```
+
+Export now provides a three-piece package:
+- `paragraph_path`
+- `figure_caption_path`
+- `evidence_path`
+
+Workflow result now also includes:
+- `evidence_trace`: source/page/chunk trace list from analysis evidence
+- `step_trace`: normalized status of each workflow step
+- `revision_history`: revised draft history captured by resume actions
+
+## Mentor-Skill Governance
+
+Workflow orchestration follows a fixed role chain:
+
+1. `mentor_dispatch_skill`: mentor dispatch + execution constraints
+2. `analysis_agent_skill`: evidence retrieval and recommendation
+3. `writer_agent_skill`: paragraph rewrite
+4. `manuscript_validate_skill`: structured risk check
+5. `figure_agent_skill`: figure generation (degrade-safe fallback supported)
+6. `citation_agent_skill`: citation pack construction
+7. `mentor_review_skill`: final mentor review and go-next decision
+
+Quality gates:
+- High-risk validation issues force `needs_revision`
+- Resume requires revised draft via `POST /api/workflows/{session_id}/resume`
+- Export is allowed only when session status is `completed`
+
+Human-in-the-loop:
+- When `needs_revision` is returned, revise text first, then resume
+- In degraded runs (e.g., model/image fallback), manually review terminology and caption consistency before submission
+
+## Troubleshooting Diagram/Figure Generation
+
+- If PNG preview is missing for diagrams, check whether Mermaid CLI (`mmdc`) is installed.
+- If text generation degrades unexpectedly, verify `GOOGLE_API_KEY` / `OPEN_API_KEY` and model names.
+- If figure generation fails, verify `GLM_API_KEY`, `FIGURE_MODEL`, and network/proxy settings.
+- Check `GET /api/status` for `generation_health.last_generation_error` to inspect latest generation failures.
+- `GET /api/status` now includes:
+  - `google_api_configured` / `open_api_configured` / `glm_api_configured`
+  - `text_primary_provider` / `text_fallback_provider`
+  - `retrieval_mode` (`vector_semantic+keyword_fallback` by default)
+  - `vector_store_ready` (vector service availability)
+  - `knowledge_base_ready` (local indexed content readiness)
+  - `last_retrieval_source` (`vector` / `keyword` / `fallback` / `none`)
+  - `product_metrics` (chat/writing/diagram/figure request counters)
+  - `mentor_model` (mentor AI model route)
+- Check `error_code` in API response for actionable hints:
+  - `MODEL_TIMEOUT`
+  - `MODEL_NOT_FOUND`
+  - `TEXT_PROVIDER_UNAVAILABLE`
+  - `FIGURE_PROVIDER_UNAVAILABLE`
+  - `CONFIG_MISSING`
+  - `NETWORK_ERROR`
+  - `RENDERER_UNAVAILABLE`
+  - `INSUFFICIENT_EVIDENCE`
+
+## Acceptance Test Baseline
+
+Use the chat acceptance gate to validate core Q&A quality and reliability contract before release:
+
+```bash
+cd backend
+python -m unittest test_chat_acceptance.py
+```
+
+Modes:
+- Default (recommended CI gate): mocked deterministic provider, strict mode on.
+- Live check (optional): set `CHAT_ACCEPTANCE_LIVE=1` to hit real provider routes.
+- Soft report mode: set `CHAT_ACCEPTANCE_STRICT=0` to print issues without failing.
+
+Example:
+
+```bash
+CHAT_ACCEPTANCE_LIVE=1 CHAT_ACCEPTANCE_STRICT=0 python -m unittest test_chat_acceptance.py
+```
+
+## Docker
+
+```bash
+# Optional: create backend/.env from template for local secrets
+cp backend/.env.example backend/.env
+docker compose up --build
+```
+
+The container exposes the app at [http://localhost:8000](http://localhost:8000).
+`docker-compose.yml` now boots with safe defaults, and `.env` remains optional for first run.
+
+## Notes
+
+- Runtime data is intentionally ignored from Git: uploaded PDFs, ChromaDB files, diagrams, and local secrets.
+- Mermaid PNG preview requires `mmdc` to be installed on the host or inside your runtime image.
+- Vector indexing depends on the embedding model being available to `sentence-transformers`.
+
+## Open-Source Scope
+
+This repository is open-sourced as an actively evolving research-assistant prototype.
+
+- **Supported scope**: local deployment, document ingestion, knowledge retrieval, chat/writing/diagram/figure APIs, workflow beta path.
+- **Out of scope**: production multi-tenant deployment, strict SLA guarantees, managed cloud hosting defaults.
+- **Issue reporting**: use GitHub Issues for bugs/feature requests; use private channels described in `SECURITY.md` for vulnerabilities.
+- **Contribution guide**: see `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`.
+
+### Known Limitations
+
+- Provider availability depends on third-party API quotas, model permissions, and network/proxy stability.
+- Some fallback paths are designed for continuity rather than best-quality generation output.
+- Dependency vulnerability remediation is in progress; see `docs/prepublish_security_report.md`.
+
+### Versioning Strategy
+
+- Pre-1.0 releases follow `v0.x.y`.
+- `x` increments for feature waves or behavior shifts.
+- `y` increments for bug fixes, docs, and non-breaking maintenance.
+- Breaking API changes are documented in release notes and should target the next minor line.
+
+## Launch Readiness Checklist
+
+Before public trial release, ensure all items are green:
+
+- Security: no plaintext API keys in repository; debug scripts read env vars only.
+- Stability: `test_smoke.py`, `test_workflow_engine.py`, and `test_chat_acceptance.py` pass.
+- Reliability UX: frontend clearly shows `degraded`/`error_hint` for chat/diagram/figure.
+- Workflow traceability: export includes paragraph + figure caption + evidence + step/revision trace.
+- Deployment: `docker compose up --build` starts app and `/api/status` returns healthy core fields.
+
+## Execution Playbooks
+
+Week-by-week execution assets are tracked in:
+
+- `docs/week1_stability_gates.md`
+- `docs/week2_workflow_ux_trace.md`
+- `docs/week3_beta_rollout.md`
+- `docs/reasoning_toolchain_min_design.md`
+- `docs/templates/beta_report_template.md`
+
+## Roadmap Ideas
+
+- Add citations with chunk-level traceability in answers
+- Persist chat sessions and research workspaces
+- Add ingestion progress and document management UI
+- Introduce test automation in CI

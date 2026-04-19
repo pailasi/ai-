@@ -1,136 +1,101 @@
 # 项目概览
 
-## 项目状态
+## 当前定位
 
-✅ **项目已完成，可以立即使用！**
+Sci-Copilot 是一个本地科研助手原型，采用 FastAPI 单入口提供 API 与前端页面，主流程为：
 
-### 已实现功能
+1. 上传 PDF
+2. 构建本地索引
+3. 基于命中文献片段问答
+4. 生成 Mermaid 流程图与论文配图预览
 
-#### 🎨 AI科研绘图模块
-- ✅ 文本生图API (`/api/v1/illustrator/text-to-image`)
-- ✅ 图生图API (`/api/v1/illustrator/image-to-image`)
-- ✅ 支持多种风格（科学插图、现代风格、简约风格）
-- ✅ 可配置图像比例和背景
+## 当前架构
 
-#### 📊 AI流程图生成模块
-- ✅ 流程图生成API (`/api/v1/flowchart/generate`)
-- ✅ 支持Mermaid.js语法
-- ✅ 支持多种布局（从上到下、从左到右）
-- ✅ 前端实时渲染SVG
+- 后端：FastAPI（`backend/main.py`）
+- 前端：静态页面（`frontend/index.html`），由后端托管
+- 文献解析：PyMuPDF
+- 切分：`langchain-text-splitters`
+- 生成模型：Google GenAI（可选）/ GLM（可选）
+- 图渲染：Mermaid CLI（可选）
 
-#### 📚 智能文献处理模块
-- ✅ PubMed集成搜索API (`/api/v1/literature/search`)
-- ✅ 文献分析API (`/api/v1/literature/analyze`)
-- ✅ 文献问答API (`/api/v1/literature/qa`)
-- ✅ PDF文件上传分析API (`/api/v1/literature/analyze-pdf`)
-- ✅ 支持DOI和PMID查询
+### 导师 AI 多 Skill 编排（Beta）
 
-#### 🛠️ 核心技术模块
-- ✅ 通用API调用客户端 (`utils/api_caller.py`)
-- ✅ PubMed API集成 (`utils/pubmed_api.py`)
-- ✅ 环境变量配置支持
-- ✅ 错误处理和日志记录
+工作流 ID：`question_to_submission_paragraph`
 
-#### 🌐 用户界面
-- ✅ 响应式Web界面
-- ✅ 文件上传（拖拽支持）
-- ✅ 实时结果展示
-- ✅ 移动端适配
+执行顺序：
+1. `mentor_dispatch_skill`：导师分派任务与约束
+2. `analysis_agent_skill`：证据检索与写作建议
+3. `writer_agent_skill`：段落改写
+4. `manuscript_validate_skill`：结构化校验
+5. `figure_agent_skill`：论文配图
+6. `citation_agent_skill`：证据清单
+7. `mentor_review_skill`：导师最终评审
 
-#### 📦 部署和运行
-- ✅ 一键启动脚本（Linux/Mac/Windows）
-- ✅ Docker支持
-- ✅ 详细的配置文档
+人工接管点：
+- 若校验阶段存在 high 风险问题，workflow 状态会进入 `needs_revision`
+- 用户需通过 `POST /api/workflows/{session_id}/resume` 提交修订文本再继续
 
-## 核心文件说明
+## 实际 API（与代码一致）
 
-### 后端核心文件
+- `GET /`
+- `GET /health`
+- `GET /api/status`
+- `POST /api/documents/upload`
+- `POST /api/knowledge/ingest`
+- `POST /api/chat`
+- `POST /api/reasoning/method-compare`
+- `POST /api/diagram`
+- `POST /api/figure`
+- `POST /api/workflows/run`
+- `GET /api/workflows/{session_id}`
+- `POST /api/workflows/{session_id}/resume`
+- `POST /api/workflows/{session_id}/export`
 
-| 文件 | 功能 | 状态 |
-|------|------|------|
-| `backend/main.py` | FastAPI主应用，包含所有API端点 | ✅ 完成 |
-| `backend/utils/api_caller.py` | 通用AI API调用客户端 | ✅ 完成 |
-| `backend/utils/pubmed_api.py` | PubMed API集成模块 | ✅ 完成 |
-| `backend/app/models/schemas.py` | 数据模型定义 | ✅ 完成 |
-| `backend/requirements.txt` | Python依赖配置 | ✅ 完成 |
-| `backend/.env.example` | 环境变量模板 | ✅ 完成 |
+## 关键文件
 
-### 前端核心文件
+- `backend/main.py`：API 入口与路由
+- `backend/services.py`：业务逻辑（文献索引、问答、出图）
+- `backend/reasoning/contracts.py`：工具化推理链路输入输出契约
+- `backend/schemas.py`：请求/响应模型
+- `backend/config.py`：配置管理
+- `frontend/index.html`：前端工作台
+- `start.sh` / `start.bat`：本地一键启动
+- `Dockerfile` / `docker-compose.yml`：容器化部署
 
-| 文件 | 功能 | 状态 |
-|------|------|------|
-| `frontend/index.html` | 单页面应用，包含所有功能界面 | ✅ 完成 |
+## 运行说明
 
-### 配置和部署文件
+1. 复制 `backend/.env.example` 为 `backend/.env`
+2. 按需配置 `GOOGLE_API_KEY`、`GLM_API_KEY`
+3. 执行 `start.bat`（Windows）或 `./start.sh`（macOS/Linux）
+4. 打开 `http://localhost:8000`
 
-| 文件 | 功能 | 状态 |
-|------|------|------|
-| `start.sh` | Linux/Mac启动脚本 | ✅ 完成 |
-| `start.bat` | Windows启动脚本 | ✅ 完成 |
-| `Dockerfile` | Docker镜像配置 | ✅ 完成 |
-| `docker-compose.yml` | Docker Compose配置 | ✅ 完成 |
-| `nginx.conf` | Nginx配置 | ✅ 完成 |
-| `README.md` | 项目文档 | ✅ 完成 |
+补充运行约束：
+- 可通过 `MAX_UPLOAD_SIZE_MB` 限制单文件上传大小（默认 25MB）
+- 若配置 `API_ACCESS_KEY`，所有 `/api/*` 请求需携带 `X-API-Key`
+- 生产环境建议将 `STATUS_INCLUDE_DEBUG=false` 以减少状态接口暴露字段
+- 可通过 `TEXT_PROVIDER_ORDER` / `FIGURE_PROVIDER_ORDER` 控制全局模型路由顺序
+- 可通过 `TEXT_MODEL_MAP` / `FIGURE_MODEL_MAP` 覆盖 provider 默认模型
+- 可通过 `DISABLE_PROVIDERS` 临时熔断指定 provider（逗号分隔）
 
-## 支持的AI模型
+## 现阶段边界
 
-| 模型 | 用途 | 配置变量 |
-|------|------|----------|
-| Google Gemini | 文本生成、文献分析 | `GEMINI_API_KEY` |
-| Anthropic Claude | 高质量文本处理、流程图生成 | `CLAUDE_API_KEY` |
-| OpenAI GPT/DALL-E | 文本生成、图像生成 | `OPENAI_API_KEY` |
-| PubMed API | 文献搜索和获取 | `PUBMED_API_KEY` |
+- 当前以本地单机使用为主，尚未引入用户系统与多租户隔离
+- 向量检索为轻量本地索引策略，适合原型验证与小规模文献集
+- 测试与 CI 能力仍在建设中（已覆盖 smoke + workflow/skills 基础单测）
 
-## 快速开始
+## 当前上线准备状态（Beta）
 
-1. **克隆项目**
-   ```bash
-   git clone [项目地址]
-   cd sci-copilot
-   ```
+- 稳定性：文本模型路由已统一为主备链路，错误码与降级提示已结构化。
+- 质量门禁：新增 `backend/test_chat_acceptance.py`，支持严格门禁与可选 live 验收。
+- 运行口径：`/api/status` 提供稳定性指标定义、门槛目标和错误码动作映射（由后端统一输出）。
+- 可解释性：前端已显式展示 `degraded` / `error_code` / `error_hint`，避免误判结果可信度。
+- 可追溯性：workflow 结果与导出包包含证据追踪、步骤追踪和修订历史。
+- 待补强：多用户隔离、线上监控告警、以及更大规模题集评测仍需继续建设。
 
-2. **配置API密钥**
-   ```bash
-   cd backend
-   cp .env.example .env
-   # 编辑.env文件，添加您的API密钥
-   ```
+## 导出条件
 
-3. **启动服务**
-   ```bash
-   # Linux/Mac
-   ./start.sh
-   
-   # Windows
-   start.bat
-   ```
-
-4. **使用应用**
-   - 前端界面：通过浏览器访问自动打开的HTML文件
-   - 后端API：http://localhost:8000
-   - API文档：http://localhost:8000/docs
-
-## 项目亮点
-
-1. **完整的全栈解决方案**：从后端API到前端界面，一应俱全
-2. **多模型支持**：支持主流AI模型，可根据需要选择
-3. **即用配置**：提供完整的配置文件和启动脚本
-4. **模块化设计**：代码结构清晰，易于扩展
-5. **专业的科研功能**：针对科研场景深度定制
-
-## 注意事项
-
-1. **API密钥**：需要自行申请相应的AI服务API密钥
-2. **网络访问**：确保能够访问对应的AI服务
-3. **Python环境**：需要Python 3.9+环境
-4. **依赖安装**：首次运行会自动安装依赖
-
-## 扩展建议
-
-1. **数据库支持**：可以添加数据库来存储历史记录
-2. **用户系统**：添加用户认证和权限管理
-3. **批量处理**：支持批量文献分析和图像处理
-4. **更多模型**：集成更多AI模型和服务
-5. **移动应用**：开发移动端应用
-
-这个项目提供了一个完整的AI科研助手解决方案，可以直接使用，也可以作为基础进行进一步开发。
+- 仅当 workflow 会话状态为 `completed` 才允许导出
+- 导出内容包含段落、图注和证据清单三件套：
+  - `paragraph_path`
+  - `figure_caption_path`
+  - `evidence_path`

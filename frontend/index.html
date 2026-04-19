@@ -1,0 +1,2798 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sci-Copilot</title>
+    <style>
+        :root {
+            --bg: #040916;
+            --bg-deep: #091327;
+            --bg-void: #02050d;
+            --panel: rgba(7, 16, 33, 0.68);
+            --panel-strong: rgba(9, 20, 40, 0.9);
+            --ink: #edf6ff;
+            --muted: #8fa2c8;
+            --line: rgba(164, 214, 255, 0.12);
+            --accent: #77dfff;
+            --accent-bright: #b8f7ff;
+            --accent-soft: rgba(119, 223, 255, 0.14);
+            --violet: #8a7dff;
+            --gold: #ffd089;
+            --shadow: 0 28px 90px rgba(1, 8, 18, 0.42);
+            --grid: rgba(132, 191, 255, 0.08);
+            --nebula: rgba(138, 125, 255, 0.16);
+        }
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Bahnschrift", "Segoe UI Variable Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at 18% 16%, rgba(119, 223, 255, 0.12), transparent 24%),
+                radial-gradient(circle at 82% 18%, rgba(255, 208, 137, 0.1), transparent 22%),
+                radial-gradient(circle at 50% 12%, var(--nebula), transparent 32%),
+                linear-gradient(160deg, var(--bg-void) 0%, var(--bg) 34%, var(--bg-deep) 100%);
+            overflow-x: hidden;
+            cursor: none;
+        }
+        body.ready .panel { animation-play-state: running; }
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.9) 0 1px, transparent 1.5px),
+                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.7) 0 1px, transparent 1.5px),
+                radial-gradient(circle at 70% 70%, rgba(255, 255, 255, 0.65) 0 1px, transparent 1.5px),
+                radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.55) 0 1px, transparent 1.5px),
+                radial-gradient(circle at 55% 45%, rgba(255, 255, 255, 0.45) 0 1px, transparent 1.5px);
+            background-size: 260px 260px, 360px 360px, 420px 420px, 320px 320px, 520px 520px;
+            opacity: 0.45;
+            pointer-events: none;
+            animation: star-drift 26s linear infinite;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(var(--grid) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+            background-size: 30px 30px;
+            opacity: 0.4;
+            pointer-events: none;
+            mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.85), transparent 90%);
+        }
+        .cosmos,
+        .aurora {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+        }
+        .cosmos {
+            background:
+                radial-gradient(circle at 15% 18%, rgba(119, 223, 255, 0.12), transparent 20%),
+                radial-gradient(circle at 78% 24%, rgba(138, 125, 255, 0.16), transparent 18%),
+                radial-gradient(circle at 52% 72%, rgba(255, 208, 137, 0.08), transparent 18%);
+            filter: blur(18px);
+            opacity: 0.85;
+            animation: aurora-float 18s ease-in-out infinite alternate;
+        }
+        .aurora {
+            background:
+                radial-gradient(circle at calc(var(--mouse-x, 50%) * 1px) calc(var(--mouse-y, 50%) * 1px), rgba(119, 223, 255, 0.18), transparent 0 22%),
+                radial-gradient(circle at 50% 50%, rgba(138, 125, 255, 0.08), transparent 34%);
+            opacity: 0.75;
+            transition: background-position 0.18s ease;
+        }
+        .cursor-dot, .cursor-ring, .cursor-glow {
+            position: fixed;
+            left: 0;
+            top: 0;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+        }
+        .cursor-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(184, 247, 255, 0.95);
+            box-shadow: 0 0 14px rgba(184, 247, 255, 0.8);
+        }
+        .cursor-ring {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 1px solid rgba(119, 223, 255, 0.55);
+            box-shadow: 0 0 24px rgba(119, 223, 255, 0.18);
+            transition: width 0.2s ease, height 0.2s ease, border-color 0.2s ease, background 0.2s ease, transform 0.16s ease;
+        }
+        .cursor-ring.active {
+            width: 58px;
+            height: 58px;
+            border-color: rgba(255, 208, 137, 0.7);
+            background: rgba(255, 208, 137, 0.08);
+        }
+        .cursor-glow {
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(119, 223, 255, 0.18) 0%, rgba(138, 125, 255, 0.09) 42%, transparent 72%);
+            filter: blur(12px);
+            opacity: 0.92;
+            z-index: 0;
+        }
+        a, button, label, textarea, input, .panel { cursor: none; }
+        .page {
+            position: relative;
+            width: min(1240px, calc(100% - 36px));
+            margin: 0 auto;
+            padding: 28px 0 48px;
+            z-index: 1;
+        }
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.24fr) minmax(320px, 0.82fr);
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+        .panel {
+            position: relative;
+            overflow: hidden;
+            border-radius: 30px;
+            border: 1px solid var(--line);
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+            isolation: isolate;
+            animation: rise-in 0.8s ease both;
+            animation-play-state: paused;
+        }
+        .panel::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), rgba(119, 223, 255, 0.16), transparent 42%);
+            opacity: 0;
+            transition: opacity 0.24s ease;
+            pointer-events: none;
+        }
+        .panel::after {
+            content: "";
+            position: absolute;
+            inset: 1px;
+            border-radius: inherit;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 20%, transparent 80%, rgba(184, 247, 255, 0.03));
+            pointer-events: none;
+        }
+        .panel:hover::before { opacity: 1; }
+        .hero-main {
+            min-height: 300px;
+            padding: 26px;
+            display: grid;
+            align-content: start;
+            gap: 18px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.09), transparent 42%),
+                radial-gradient(circle at right top, rgba(119, 223, 255, 0.16), transparent 34%);
+        }
+        .hero-topline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: rgba(10, 24, 36, 0.72);
+            border: 1px solid rgba(119, 223, 255, 0.16);
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .eyebrow::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-bright), var(--gold));
+            box-shadow: 0 0 12px rgba(119, 223, 255, 0.34);
+        }
+        .hero-metrics { display: flex; gap: 8px; flex-wrap: wrap; }
+        .metric-chip {
+            padding: 9px 11px;
+            border-radius: 14px;
+            border: 1px solid rgba(119, 223, 255, 0.12);
+            background: rgba(10, 24, 36, 0.7);
+            min-width: 102px;
+        }
+        .metric-chip small {
+            display: block;
+            color: var(--muted);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .metric-chip strong {
+            display: block;
+            margin-top: 6px;
+            font-size: 15px;
+            letter-spacing: -0.03em;
+        }
+        h1 {
+            margin: 8px 0 6px;
+            max-width: 640px;
+            font-size: clamp(32px, 4.3vw, 54px);
+            line-height: 0.98;
+            letter-spacing: -0.045em;
+        }
+        .subtitle {
+            margin: 0;
+            max-width: 620px;
+            font-size: 15px;
+            line-height: 1.7;
+            color: var(--muted);
+        }
+        .hero-bottom {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 4px;
+        }
+        .hero-note, .hero-visual {
+            border-radius: 20px;
+            border: 1px solid rgba(119, 223, 255, 0.08);
+            background: rgba(9, 22, 34, 0.54);
+            padding: 14px 16px;
+        }
+        .hero-note strong, .hero-visual strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 12px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+        .hero-visual-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .hero-cell {
+            border-radius: 14px;
+            border: 1px solid rgba(119, 223, 255, 0.12);
+            background: linear-gradient(180deg, rgba(18, 40, 70, 0.92), rgba(9, 20, 38, 0.62));
+            padding: 10px;
+            min-height: 70px;
+        }
+        .hero-cell small { display: block; color: var(--muted); font-size: 12px; }
+        .hero-cell strong { display: block; margin-top: 8px; font-size: 15px; color: var(--ink); }
+        .hero-side {
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 36%),
+                radial-gradient(circle at 82% 0%, rgba(255, 208, 137, 0.12), transparent 28%);
+        }
+        .hero-side-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .hero-side-head strong { font-size: 18px; }
+        .signal {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .signal::before {
+            content: "";
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-bright), var(--gold));
+            box-shadow: 0 0 0 6px rgba(119, 223, 255, 0.1);
+        }
+        .status-grid, .workspace { display: grid; gap: 20px; }
+        .status-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+        .status-card {
+            border-radius: 20px;
+            border: 1px solid rgba(119, 223, 255, 0.1);
+            background: var(--panel-strong);
+            padding: 16px;
+        }
+        .status-card small {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 11px;
+        }
+        .status-value {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+        .status-value a { color: var(--accent); text-decoration: none; }
+        .tips {
+            margin-top: 0;
+            padding: 15px 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 208, 137, 0.18);
+            background: rgba(255, 208, 137, 0.08);
+            color: var(--gold);
+            line-height: 1.65;
+            font-size: 14px;
+        }
+        .workflow-panel {
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 16px;
+            border: 1px solid rgba(119, 223, 255, 0.14);
+            background: rgba(8, 20, 35, 0.64);
+            display: grid;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+        .workflow-panel-title {
+            color: var(--accent-bright);
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        .workflow-session-meta {
+            color: var(--ink);
+            line-height: 1.6;
+            word-break: break-word;
+        }
+        .workflow-mentor-box {
+            border-radius: 12px;
+            border: 1px solid rgba(119, 223, 255, 0.12);
+            background: rgba(7, 18, 33, 0.78);
+            padding: 8px 10px;
+            line-height: 1.6;
+            color: var(--ink);
+        }
+        .workflow-mentor-box strong {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--accent);
+            font-size: 11px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .workflow-step-list {
+            margin: 0;
+            padding-left: 14px;
+            max-height: 220px;
+            overflow: auto;
+            display: grid;
+            gap: 6px;
+        }
+        .workflow-step-list li {
+            line-height: 1.5;
+            color: var(--ink);
+        }
+        .workflow-step-list li small {
+            color: var(--muted);
+            margin-left: 4px;
+        }
+        .workspace {
+            grid-template-columns: 248px minmax(0, 1fr);
+            align-items: start;
+        }
+        .workspace-nav,
+        .workspace-stage {
+            position: relative;
+        }
+        .workspace-nav {
+            padding: 18px;
+            display: grid;
+            gap: 10px;
+            top: 0;
+        }
+        .workspace-nav-head {
+            padding: 4px 2px 10px;
+        }
+        .workspace-nav-head strong {
+            display: block;
+            font-size: 18px;
+            letter-spacing: -0.03em;
+        }
+        .workspace-nav-head p {
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .nav-tab {
+            width: 100%;
+            padding: 14px 14px 14px 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(119, 223, 255, 0.1);
+            background: rgba(9, 22, 34, 0.62);
+            color: var(--ink);
+            display: grid;
+            justify-items: start;
+            gap: 4px;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+        .nav-tab small {
+            color: var(--muted);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .nav-tab strong {
+            font-size: 15px;
+            letter-spacing: -0.02em;
+        }
+        .nav-tab.active {
+            border-color: rgba(184, 247, 255, 0.2);
+            background: linear-gradient(180deg, rgba(17, 40, 66, 0.92), rgba(10, 21, 37, 0.86));
+            box-shadow: 0 12px 28px rgba(4, 12, 21, 0.26);
+        }
+        .nav-tab.active::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(184, 247, 255, 0.08), transparent);
+            transform: translateX(-100%);
+            animation: sweep 1.8s linear infinite;
+        }
+        .workspace-stage {
+            padding: 0;
+            min-height: 880px;
+            overflow: hidden;
+        }
+        .stage-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 22px 24px 0;
+        }
+        .stage-head h2 {
+            margin: 0;
+            font-size: 28px;
+            letter-spacing: -0.04em;
+        }
+        .stage-head p {
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+            max-width: 520px;
+        }
+        .stage-chip {
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(119, 223, 255, 0.14);
+            background: rgba(119, 223, 255, 0.08);
+            color: var(--accent-bright);
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .stage-switcher {
+            position: relative;
+            min-height: 780px;
+            padding: 20px 24px 24px;
+        }
+        .stage-switcher.switching::before {
+            content: "";
+            position: absolute;
+            inset: 20px 24px 24px;
+            border-radius: 28px;
+            background:
+                radial-gradient(circle at 16% 24%, rgba(255, 255, 255, 0.95) 0 1px, transparent 1.5px),
+                radial-gradient(circle at 40% 36%, rgba(184, 247, 255, 0.8) 0 1px, transparent 1.5px),
+                radial-gradient(circle at 62% 58%, rgba(255, 208, 137, 0.9) 0 1px, transparent 1.5px),
+                radial-gradient(circle at 84% 22%, rgba(255, 255, 255, 0.9) 0 1px, transparent 1.5px),
+                linear-gradient(100deg, transparent 10%, rgba(184, 247, 255, 0.08) 50%, transparent 90%);
+            background-size: auto, auto, auto, auto, 220% 100%;
+            animation: star-wipe 0.72s ease;
+            pointer-events: none;
+            z-index: 3;
+        }
+        .tab-pane {
+            display: none;
+            animation: pane-in 0.44s ease both;
+        }
+        .tab-pane.active {
+            display: block;
+        }
+        .card {
+            padding: 24px;
+            min-height: 720px;
+        }
+        .workbench {
+            display: grid;
+            grid-template-columns: minmax(300px, 0.9fr) minmax(360px, 1.1fr);
+            gap: 18px;
+            align-items: start;
+        }
+        .workbench.single {
+            grid-template-columns: 1fr;
+        }
+        .form-side,
+        .result-side {
+            border-radius: 24px;
+            border: 1px solid rgba(119, 223, 255, 0.1);
+            background: rgba(7, 18, 33, 0.46);
+            padding: 18px;
+        }
+        .result-side {
+            min-height: 600px;
+        }
+        .block-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            color: var(--accent-bright);
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .block-label::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-bright), var(--gold));
+        }
+        .card-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .card-head h2 {
+            margin: 0;
+            font-size: 23px;
+            letter-spacing: -0.03em;
+        }
+        .card-tag {
+            padding: 7px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(119, 223, 255, 0.14);
+            background: rgba(119, 223, 255, 0.08);
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .card p { margin: 0 0 18px; color: var(--muted); line-height: 1.7; }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        textarea, input[type="text"], select {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(119, 223, 255, 0.12);
+            background: rgba(9, 22, 34, 0.74);
+            color: var(--ink);
+            font: inherit;
+            resize: vertical;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+        textarea:focus, input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: rgba(119, 223, 255, 0.34);
+            box-shadow: 0 0 0 4px rgba(119, 223, 255, 0.08);
+            transform: translateY(-1px);
+        }
+        textarea { min-height: 154px; }
+        .file-meta, .sources, .footer, .diagram-note {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+        .document-hub {
+            margin-top: 18px;
+            padding: 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(119, 223, 255, 0.1);
+            background: rgba(8, 18, 32, 0.56);
+        }
+        .document-list {
+            display: grid;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .document-item {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(119, 223, 255, 0.08);
+            background: rgba(10, 24, 36, 0.68);
+        }
+        .document-item.focus {
+            border-color: rgba(184, 247, 255, 0.18);
+            box-shadow: inset 0 0 0 1px rgba(184, 247, 255, 0.06);
+        }
+        .document-item strong {
+            display: block;
+            font-size: 14px;
+        }
+        .document-item small {
+            display: block;
+            margin-top: 6px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+        .focus-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(119, 223, 255, 0.1);
+            color: var(--accent-bright);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .focus-context {
+            margin-bottom: 14px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(119, 223, 255, 0.1);
+            background: rgba(10, 24, 36, 0.5);
+            color: var(--muted);
+            line-height: 1.7;
+            font-size: 13px;
+        }
+        .focus-context strong {
+            color: var(--accent-bright);
+            font-size: 14px;
+        }
+        .quick-tasks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .quick-task-btn {
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(119, 223, 255, 0.1);
+            background: rgba(9, 22, 34, 0.62);
+            color: var(--ink);
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .button-row, .diagram-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+        details.advanced-options {
+            margin-top: 12px;
+            border: 1px solid rgba(119, 223, 255, 0.12);
+            border-radius: 14px;
+            padding: 10px 12px;
+            background: rgba(9, 22, 34, 0.42);
+        }
+        details.advanced-options summary {
+            cursor: pointer;
+            color: var(--accent-bright);
+            font-size: 13px;
+            user-select: none;
+        }
+        .advanced-grid {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .advanced-grid select {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(119, 223, 255, 0.12);
+            background: rgba(9, 22, 34, 0.74);
+            color: var(--ink);
+        }
+        button, .file-label {
+            appearance: none;
+            border: none;
+            border-radius: 999px;
+            padding: 12px 18px;
+            font: inherit;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        button:hover, .file-label:hover { transform: translateY(-1px); }
+        .primary {
+            background: linear-gradient(135deg, #4dd8ff, #9ef6ff 58%, #ffd089);
+            color: #041019;
+            box-shadow: 0 14px 28px rgba(77, 216, 255, 0.28);
+        }
+        .secondary, .file-label {
+            background: rgba(7, 18, 33, 0.82);
+            color: var(--ink);
+            border: 1px solid rgba(119, 223, 255, 0.12);
+            box-shadow: 0 10px 22px rgba(4, 12, 21, 0.24);
+        }
+        input[type="file"] { display: none; }
+        .output {
+            margin-top: 18px;
+            padding: 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(119, 223, 255, 0.1);
+            background:
+                linear-gradient(180deg, rgba(10, 23, 44, 0.94), rgba(7, 16, 30, 0.9));
+            min-height: 128px;
+            white-space: pre-wrap;
+            line-height: 1.7;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.24s ease, border-color 0.24s ease, box-shadow 0.24s ease;
+        }
+        .output.loading {
+            transform: translateY(-1px);
+            border-color: rgba(184, 247, 255, 0.22);
+            box-shadow: inset 0 0 0 1px rgba(184, 247, 255, 0.04), 0 16px 30px rgba(4, 12, 21, 0.24);
+        }
+        .output.loading::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(110deg, transparent 0%, rgba(184, 247, 255, 0.06) 35%, rgba(184, 247, 255, 0.16) 50%, transparent 65%);
+            transform: translateX(-100%);
+            animation: sweep 1.5s linear infinite;
+        }
+        .output.loading::before {
+            content: "";
+            position: absolute;
+            inset: auto 18px 16px auto;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-bright), var(--gold));
+            box-shadow: 0 0 0 10px rgba(184, 247, 255, 0.05), 0 0 16px rgba(184, 247, 255, 0.22);
+            animation: signal-pulse 1.4s ease infinite;
+        }
+        .excerpt-list { margin-top: 14px; display: grid; gap: 12px; }
+        .reliability-box {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(119, 223, 255, 0.16);
+            background: rgba(7, 20, 34, 0.72);
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .reliability-box.warn {
+            border-color: rgba(255, 208, 137, 0.36);
+            background: rgba(255, 208, 137, 0.1);
+            color: var(--gold);
+        }
+        .excerpt-card {
+            padding: 14px 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(119, 223, 255, 0.1);
+            background: rgba(10, 24, 36, 0.8);
+        }
+        .excerpt-card strong { display: block; margin-bottom: 8px; color: var(--accent); font-size: 14px; }
+        .excerpt-card p { margin: 0; color: var(--ink); font-size: 14px; line-height: 1.7; }
+        .ref-checkbox-list {
+            max-height: 160px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 8px;
+            background: rgba(10, 24, 36, 0.5);
+        }
+        .ref-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 4px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--ink);
+            border-radius: 4px;
+            transition: background 0.15s;
+        }
+        .ref-checkbox-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .ref-checkbox-item input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 15px;
+            height: 15px;
+            flex-shrink: 0;
+        }
+        .ref-checkbox-item span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .ref-empty {
+            color: var(--muted);
+            font-size: 13px;
+            padding: 8px 4px;
+        }
+        .issue-original {
+            margin: 8px 0;
+            padding: 8px 12px;
+            border-left: 3px solid var(--accent);
+            background: rgba(255, 255, 255, 0.04);
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--ink);
+            border-radius: 0 6px 6px 0;
+        }
+        .issue-original::before {
+            content: "原文 ▸ ";
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .mermaid-code {
+            font-family: Consolas, "SFMono-Regular", "Cascadia Mono", monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+        .diagram-preview {
+            width: 100%;
+            border-radius: 18px;
+            border: 1px solid rgba(119, 223, 255, 0.12);
+            background: rgba(8, 18, 28, 0.92);
+            animation: sharpen-in 0.45s ease;
+        }
+        .diagram-stage {
+            position: relative;
+            margin-top: 16px;
+            padding: 18px;
+            border-radius: 28px;
+            border: 1px solid rgba(184, 247, 255, 0.14);
+            background:
+                radial-gradient(circle at 50% 0%, rgba(119, 223, 255, 0.14), transparent 34%),
+                linear-gradient(180deg, rgba(8, 18, 31, 0.96), rgba(4, 11, 22, 0.98));
+            overflow: hidden;
+            min-height: 340px;
+        }
+        .diagram-stage::before,
+        .diagram-stage::after {
+            content: "";
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(184, 247, 255, 0.08);
+            pointer-events: none;
+        }
+        .diagram-stage::before {
+            width: 240px;
+            height: 240px;
+            top: -120px;
+            right: -60px;
+        }
+        .diagram-stage::after {
+            width: 180px;
+            height: 180px;
+            bottom: -90px;
+            left: -40px;
+        }
+        .preview-shell {
+            position: relative;
+            z-index: 1;
+            border-radius: 22px;
+            border: 1px solid rgba(184, 247, 255, 0.12);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 16%),
+                linear-gradient(180deg, rgba(6, 15, 26, 0.98), rgba(5, 10, 18, 0.98));
+            min-height: 280px;
+            padding: 18px;
+            overflow: hidden;
+        }
+        .preview-shell::before {
+            content: "";
+            position: absolute;
+            inset: 18px;
+            border-radius: 18px;
+            border: 1px dashed rgba(184, 247, 255, 0.1);
+            pointer-events: none;
+        }
+        .preview-head {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+            color: var(--muted);
+            font-size: 12px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .preview-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 999px;
+            background: rgba(119, 223, 255, 0.08);
+            border: 1px solid rgba(119, 223, 255, 0.12);
+            color: var(--accent-bright);
+        }
+        .preview-badge::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-bright), var(--gold));
+            box-shadow: 0 0 12px rgba(184, 247, 255, 0.35);
+        }
+        .preview-canvas {
+            position: relative;
+            z-index: 1;
+            min-height: 212px;
+            display: grid;
+            place-items: center;
+        }
+        .preview-placeholder {
+            max-width: 360px;
+            text-align: center;
+            color: var(--muted);
+            line-height: 1.8;
+        }
+        .preview-placeholder strong {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--accent-bright);
+            font-size: 15px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .preview-orbit {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(184, 247, 255, 0.08);
+            pointer-events: none;
+            animation: slow-spin 16s linear infinite;
+        }
+        .preview-orbit.one {
+            width: 220px;
+            height: 220px;
+            top: 24px;
+            right: -36px;
+        }
+        .preview-orbit.two {
+            width: 160px;
+            height: 160px;
+            bottom: -30px;
+            left: -18px;
+            animation-duration: 12s;
+            animation-direction: reverse;
+        }
+        .entry-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            background:
+                radial-gradient(circle at center, rgba(119, 223, 255, 0.14), transparent 18%),
+                radial-gradient(circle at center, rgba(138, 125, 255, 0.1), transparent 26%),
+                linear-gradient(180deg, rgba(2, 5, 13, 0.98), rgba(4, 10, 22, 0.99));
+            display: grid;
+            place-items: center;
+            animation: overlay-fade 2.8s ease forwards;
+            pointer-events: none;
+        }
+        .entry-panel {
+            display: grid;
+            gap: 16px;
+            justify-items: center;
+            text-align: center;
+        }
+        .entry-core {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            border: 1px solid rgba(184, 247, 255, 0.2);
+            display: grid;
+            place-items: center;
+            color: var(--accent-bright);
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            font-size: 12px;
+            position: relative;
+            animation: pulse-core 2.3s ease-out forwards;
+        }
+        .entry-core::before,
+        .entry-core::after {
+            content: "";
+            position: absolute;
+            inset: -22px;
+            border-radius: 50%;
+            border: 1px solid rgba(184, 247, 255, 0.12);
+        }
+        .entry-core::after {
+            inset: -46px;
+            border-color: rgba(255, 208, 137, 0.1);
+        }
+        .entry-title {
+            font-size: 14px;
+            letter-spacing: 0.42em;
+            text-transform: uppercase;
+            color: var(--accent-bright);
+        }
+        .entry-subtitle {
+            max-width: 380px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .footer { margin-top: 22px; text-align: center; }
+        @keyframes rise-in {
+            from { opacity: 0; transform: translateY(18px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes sharpen-in {
+            from { opacity: 0; transform: scale(0.985); filter: blur(10px); }
+            to { opacity: 1; transform: scale(1); filter: blur(0); }
+        }
+        @keyframes sweep {
+            to { transform: translateX(100%); }
+        }
+        @keyframes pane-in {
+            from { opacity: 0; transform: translateY(10px) scale(0.992); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes signal-pulse {
+            0%, 100% { transform: scale(0.8); opacity: 0.7; }
+            50% { transform: scale(1.14); opacity: 1; }
+        }
+        @keyframes star-wipe {
+            0% { opacity: 0; transform: scale(0.98); }
+            20% { opacity: 1; }
+            100% { opacity: 0; transform: scale(1.02); background-position: 0 0, 0 0, 0 0, 0 0, 100% 0; }
+        }
+        @keyframes overlay-fade {
+            0%, 70% { opacity: 1; visibility: visible; }
+            100% { opacity: 0; visibility: hidden; }
+        }
+        @keyframes pulse-core {
+            0% { transform: scale(0.8); opacity: 0; }
+            40% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.08); opacity: 0.92; }
+        }
+        @keyframes slow-spin {
+            to { transform: rotate(360deg); }
+        }
+        @keyframes star-drift {
+            from { transform: translateY(0); }
+            to { transform: translateY(18px); }
+        }
+        @keyframes aurora-float {
+            from { transform: translate3d(-1.5%, -1%, 0) scale(1); }
+            to { transform: translate3d(1.5%, 1%, 0) scale(1.05); }
+        }
+        @media (max-width: 1080px) {
+            .hero, .workspace, .hero-bottom { grid-template-columns: 1fr; }
+            .workspace-stage { min-height: 0; }
+            .card { min-height: 0; }
+            .workbench { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 720px) {
+            body { cursor: auto; }
+            .cursor-dot, .cursor-ring, .cursor-glow { display: none; }
+            .page { width: min(100% - 18px, 100%); padding-top: 18px; }
+            .hero-main, .hero-side, .card { padding: 18px; }
+            .workspace-nav { padding: 14px; }
+            .stage-head, .stage-switcher { padding-left: 18px; padding-right: 18px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="entry-overlay" id="entry-overlay">
+        <div class="entry-panel">
+            <div class="entry-core">Sci-Copilot</div>
+            <div class="entry-title">Research Workspace</div>
+            <div class="entry-subtitle">把文献研读、结构梳理与论文配图，组织进一块更沉浸的研究工作台。</div>
+        </div>
+    </div>
+    <div class="cosmos"></div>
+    <div class="aurora" id="aurora"></div>
+    <div class="cursor-glow" id="cursor-glow"></div>
+    <div class="cursor-ring" id="cursor-ring"></div>
+    <div class="cursor-dot" id="cursor-dot"></div>
+
+    <main class="page">
+        <section class="hero">
+            <div class="panel hero-main">
+                <div class="hero-topline">
+                    <div class="eyebrow">Sci-Copilot</div>
+                    <div class="hero-metrics">
+                        <div class="metric-chip"><small>文献</small><strong>上传与索引</strong></div>
+                        <div class="metric-chip"><small>问答</small><strong>上下文回答</strong></div>
+                        <div class="metric-chip"><small>配图</small><strong>结构化出图</strong></div>
+                    </div>
+                </div>
+                <div>
+                    <h1>大学生的ai小助手</h1>
+                    <p class="subtitle">一个面向科研写作的工作台。上传文献后，你可以直接提问、提炼结构，并把方法流程或论文框架整理成图。</p>
+                </div>
+                <div class="hero-bottom">
+                    <div class="hero-note">
+                        <strong>适合的场景</strong>
+                        文献速读、方法整理、相关工作对比、论文插图初稿。
+                    </div>
+                    <div class="hero-visual">
+                        <strong>核心能力</strong>
+                        <div class="hero-visual-grid">
+                            <div class="hero-cell"><small>文献库</small><strong>上传即整理</strong></div>
+                            <div class="hero-cell"><small>内容理解</small><strong>结合文段回答</strong></div>
+                            <div class="hero-cell"><small>插图生成</small><strong>支持 PNG/SVG 初稿</strong></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <aside class="panel hero-side">
+                <div class="hero-side-head">
+                    <strong>运行状态</strong>
+                    <span class="signal">在线</span>
+                </div>
+                <p class="subtitle" style="font-size:14px; max-width:none;">这里会显示当前服务、模型和知识库状态，方便你确认是否可以直接开始工作。</p>
+                <div class="status-grid">
+                    <div class="status-card"><small>后端服务</small><div class="status-value" id="backend-status">检查中...</div></div>
+                    <div class="status-card"><small>模型服务</small><div class="status-value" id="api-status">检查中...</div></div>
+                    <div class="status-card"><small>流程图渲染</small><div class="status-value" id="mmdc-status">检查中...</div></div>
+                    <div class="status-card"><small>接口文档</small><div class="status-value"><a href="/docs">/docs</a></div></div>
+                </div>
+                <div class="tips" id="status-detail">状态详情会显示在这里。</div>
+            </aside>
+        </section>
+
+        <section class="workspace">
+            <aside class="panel workspace-nav">
+                <div class="workspace-nav-head">
+                    <strong>工作区</strong>
+                    <p>从左侧切换功能，不再往下翻页。</p>
+                    <div class="tips" style="margin-top:10px; font-size:12px; padding:10px 12px;">
+                        自动编排（Beta）
+                        <div class="button-row" style="margin-top:8px;">
+                            <button class="secondary" id="workflow-quick-run-btn">一键编排</button>
+                            <button class="secondary" id="workflow-quick-export-btn">导出编排</button>
+                        </div>
+                        <div id="workflow-quick-status">等待运行...</div>
+                    </div>
+                    <div class="workflow-panel">
+                        <div class="workflow-panel-title">编排追踪</div>
+                        <div class="workflow-session-meta" id="workflow-session-meta">暂无会话。</div>
+                        <div class="workflow-mentor-box">
+                            <strong>导师分派</strong>
+                            <div id="workflow-mentor-dispatch">等待导师分派。</div>
+                        </div>
+                        <div class="workflow-mentor-box">
+                            <strong>导师复审</strong>
+                            <div id="workflow-mentor-review">等待导师复审。</div>
+                        </div>
+                        <ol class="workflow-step-list" id="workflow-step-list">
+                            <li>尚无步骤记录。</li>
+                        </ol>
+                    </div>
+                </div>
+                <button class="nav-tab active" data-tab-target="tab-ingest"><small>Workspace 01</small><strong>文献库</strong></button>
+                <button class="nav-tab" data-tab-target="tab-chat"><small>Workspace 02</small><strong>文献问答</strong></button>
+                <button class="nav-tab" data-tab-target="tab-writing-help"><small>Workspace 03</small><strong>写作帮助</strong></button>
+                <button class="nav-tab" data-tab-target="tab-writing-validate"><small>Workspace 04</small><strong>论文校验</strong></button>
+                <button class="nav-tab" data-tab-target="tab-diagram"><small>Workspace 05</small><strong>流程梳理</strong></button>
+                <button class="nav-tab" data-tab-target="tab-figure"><small>Workspace 06</small><strong>论文配图</strong></button>
+                <button class="nav-tab" data-tab-target="tab-reasoning-compare"><small>Workspace 07</small><strong>方法对比</strong></button>
+            </aside>
+
+            <section class="panel workspace-stage">
+                <div class="stage-head">
+                    <div>
+                        <h2 id="stage-title">文献库</h2>
+                        <p id="stage-description">将 PDF 放入应用数据目录或在此上传；启动后会自动索引，也可手动刷新索引。</p>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+                        <span class="stage-chip" id="stage-chip">资料</span>
+                        <span class="stage-chip" id="mainline-chip">主轴：文献库</span>
+                    </div>
+                </div>
+
+                <div class="stage-switcher" id="stage-switcher">
+                    <article class="card tab-pane active" id="tab-ingest" data-stage-title="文献库" data-stage-description="将 PDF 放入应用数据目录或在此上传；启动后会自动索引，也可手动刷新索引。" data-stage-chip="资料">
+                        <div class="workbench single">
+                            <div class="form-side">
+                                <div class="block-label">Document Intake</div>
+                                <label for="pdf-file">上传 PDF</label>
+                                <input id="pdf-file" type="file" accept="application/pdf">
+                                <div class="file-meta" id="file-meta">尚未选择文件。</div>
+                                <div class="button-row">
+                                    <label class="file-label" for="pdf-file">选择文件</label>
+                                    <button class="secondary" id="upload-btn">上传文献</button>
+                                    <button class="primary" id="ingest-btn">重新索引</button>
+                                </div>
+                                <div class="output" id="ingest-output">等待操作...</div>
+                                <div class="document-hub">
+                                    <div class="block-label">Paper Library</div>
+                                    <div class="diagram-note" id="focus-doc-note">当前论文：未设置</div>
+                                    <div class="document-list" id="document-list">
+                                        <div class="document-item"><div><strong>还没有文献</strong><small>上传 PDF 后会在这里显示，并可设为当前论文。</small></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="card tab-pane" id="tab-chat" data-stage-title="文献问答" data-stage-description="围绕已索引论文直接提问，系统会尽量结合文献片段回答。" data-stage-chip="研读">
+                        <div class="workbench">
+                            <div class="form-side">
+                                <div class="block-label">Question Draft</div>
+                                <div class="focus-context" id="chat-focus-context"><strong>当前论文：</strong>未设置</div>
+                                <div class="quick-tasks">
+                                    <button class="quick-task-btn" data-fill-target="question" data-fill-text="总结当前论文的核心内容">总结当前论文</button>
+                                    <button class="quick-task-btn" data-fill-target="question" data-fill-text="提炼当前论文的创新点和贡献">提炼创新点</button>
+                                    <button class="quick-task-btn" data-fill-target="question" data-fill-text="提取当前论文的方法步骤和实验流程">提取方法流程</button>
+                                </div>
+                                <label for="question">你的问题</label>
+                                <textarea id="question" placeholder="例如：总结这篇文章的研究方法，或者比较这些文献的实验设计差异。"></textarea>
+                                <div class="button-row"><button class="primary" id="ask-btn">开始回答</button></div>
+                            </div>
+                            <div class="result-side">
+                                <div class="block-label">Research Answer</div>
+                                <div class="output" id="chat-output">等待提问...</div>
+                                <div class="reliability-box" id="chat-reliability">可靠性状态：等待问答结果。</div>
+                                <div class="button-row">
+                                    <button class="secondary" id="handoff-to-writing-btn">带入写作帮助</button>
+                                </div>
+                                <div class="sources" id="chat-sources"></div>
+                                <div class="excerpt-list" id="chat-excerpts"></div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="card tab-pane" id="tab-writing-help" data-stage-title="写作帮助" data-stage-description="围绕你「当前论文」的写作问题给出建议；参考文献仅在下方多选中勾选，用于检索对比证据。" data-stage-chip="写作">
+                        <div class="workbench">
+                            <div class="form-side">
+                                <div class="block-label">Writing Assist</div>
+                                <div class="focus-context" id="writing-focus-context"><strong>当前论文：</strong>未设置</div>
+                                <div class="quick-tasks">
+                                    <button class="quick-task-btn" data-fill-target="writing-question" data-fill-text="请基于当前论文生成方法部分提纲">方法提纲</button>
+                                    <button class="quick-task-btn" data-fill-target="writing-question" data-fill-text="请基于当前论文生成实验部分提纲">实验提纲</button>
+                                    <button class="quick-task-btn" data-fill-target="writing-question" data-fill-text="请基于当前论文生成摘要初稿">摘要初稿</button>
+                                </div>
+                                <label for="writing-question">写作问题</label>
+                                <textarea id="writing-question" placeholder="例如：我的方法部分应该如何组织，才能突出创新点并避免空泛描述？"></textarea>
+                                <label>参考文献（可多选，不含当前论文）</label>
+                                <div id="writing-doc-scope" class="ref-checkbox-list"></div>
+                                <div class="button-row">
+                                    <button class="primary" id="writing-help-btn">生成写作建议</button>
+                                    <button class="secondary" id="writing-to-validate-btn">送去论文校验</button>
+                                </div>
+                            </div>
+                            <div class="result-side">
+                                <div class="block-label">Writing Output</div>
+                                <div class="output" id="writing-help-output">等待生成...</div>
+                                <div class="sources" id="writing-help-risks"></div>
+                                <div class="excerpt-list" id="writing-help-evidence"></div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="card tab-pane" id="tab-writing-validate" data-stage-title="论文校验" data-stage-description="从「当前论文」PDF 中按范围截取正文并审阅；可选参考文献对照。" data-stage-chip="校验">
+                        <div class="workbench">
+                            <div class="form-side">
+                                <div class="block-label">Manuscript Check</div>
+                                <div class="focus-context" id="validate-focus-context"><strong>当前论文：</strong>未设置</div>
+                                <label for="validate-scope">校验范围</label>
+                                <select id="validate-scope">
+                                    <option value="abstract">摘要</option>
+                                    <option value="introduction">引言</option>
+                                    <option value="method">方法</option>
+                                    <option value="experiment">实验</option>
+                                    <option value="ending">结尾（结论/讨论）</option>
+                                    <option value="full" selected>全文</option>
+                                </select>
+                                <label>参考文献对照（可多选）</label>
+                                <div id="validate-doc-scope" class="ref-checkbox-list"></div>
+                                <details class="advanced-options" style="margin-top:8px;">
+                                    <summary>高级：手动粘贴正文（覆盖从 PDF 自动截取）</summary>
+                                    <label for="validate-text">覆盖文本</label>
+                                    <textarea id="validate-text" rows="5" placeholder="留空则按「校验范围」从当前论文 PDF 自动截取；仅当需要强制指定段落时在此粘贴。"></textarea>
+                                </details>
+                                <div class="button-row"><button class="primary" id="validate-btn">开始校验</button></div>
+                            </div>
+                            <div class="result-side">
+                                <div class="block-label">Validation Report</div>
+                                <div class="output" id="validate-output">等待校验...</div>
+                                <div class="tips" id="validate-next-action">校验后会在这里显示下一步建议。</div>
+                                <div class="button-row">
+                                    <button class="secondary" id="rewrite-btn">按建议重写段落</button>
+                                    <button class="secondary" id="workflow-resume-btn">提交修订并继续编排</button>
+                                </div>
+                                <div class="excerpt-list" id="validate-issues"></div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="card tab-pane" id="tab-diagram" data-stage-title="流程梳理" data-stage-description="把方法步骤、实验流程或通用概念快速整理成清晰流程图。" data-stage-chip="结构">
+                        <div class="workbench">
+                            <div class="form-side">
+                                <div class="block-label">Prompt Builder</div>
+                                <div class="focus-context" id="diagram-focus-context"><strong>当前论文：</strong>未设置</div>
+                                <div class="quick-tasks">
+                                    <button class="quick-task-btn" data-fill-target="diagram-prompt" data-fill-text="把当前论文的整体流程图画一下">整体流程图</button>
+                                    <button class="quick-task-btn" data-fill-target="diagram-prompt" data-fill-text="提取当前论文的方法流程图">方法流程图</button>
+                                </div>
+                                <label for="diagram-prompt">流程描述</label>
+                                <textarea id="diagram-prompt" placeholder="例如：把我上传的文件的整体流程图画一下；或者：画出 transformer 流程图。"></textarea>
+                                <details class="advanced-options">
+                                    <summary>高级选项</summary>
+                                    <div class="advanced-grid">
+                                        <select id="diagram-style">
+                                            <option value="academic">学术风格</option>
+                                            <option value="minimal">极简风格</option>
+                                            <option value="presentation">汇报风格</option>
+                                        </select>
+                                        <select id="diagram-detail">
+                                            <option value="low">低复杂度</option>
+                                            <option value="medium" selected>中复杂度</option>
+                                            <option value="high">高复杂度</option>
+                                        </select>
+                                        <select id="diagram-language">
+                                            <option value="zh" selected>中文标签</option>
+                                            <option value="en">English labels</option>
+                                        </select>
+                                        <input id="diagram-width" type="text" placeholder="宽度(可选，如1600)">
+                                    </div>
+                                </details>
+                                <div class="button-row"><button class="primary" id="diagram-btn">生成流程图</button></div>
+                                <div class="output mermaid-code" id="diagram-output">等待生成...</div>
+                                <div class="reliability-box" id="diagram-reliability">可靠性状态：等待流程图结果。</div>
+                                <div class="diagram-actions">
+                                    <button class="secondary" id="copy-diagram-btn">复制结构代码</button>
+                                    <a class="file-label" id="download-diagram-btn" href="#" download="diagram.png" hidden>下载 PNG</a>
+                                </div>
+                                <div class="diagram-actions" id="diagram-feedback-actions">
+                                    <button class="secondary diagram-feedback-btn" data-target="diagram" data-feedback="layout">布局不符</button>
+                                    <button class="secondary diagram-feedback-btn" data-target="diagram" data-feedback="elements">元素不全</button>
+                                    <button class="secondary diagram-feedback-btn" data-target="diagram" data-feedback="text">文字不准</button>
+                                    <button class="secondary diagram-feedback-btn" data-target="diagram" data-feedback="style">风格不符</button>
+                                </div>
+                            </div>
+                            <div class="result-side">
+                                <div class="block-label">Diagram Preview</div>
+                                <div class="diagram-note" id="diagram-note">生成后会在这里提示当前图像状态。</div>
+                                <div class="diagram-stage">
+                                    <div class="preview-shell">
+                                        <div class="preview-orbit one"></div>
+                                        <div class="preview-orbit two"></div>
+                                        <div class="preview-head">
+                                            <span class="preview-badge">Visual Channel</span>
+                                            <span id="diagram-stage-meta">等待生成图像信号</span>
+                                        </div>
+                                        <div class="preview-canvas">
+                                            <div class="preview-placeholder" id="diagram-placeholder">
+                                                <strong>Diagram Standby</strong>
+                                                生成后的 PNG 会出现在这里。你可以基于上传文献画整体流程，也可以直接生成通用概念图。
+                                            </div>
+                                            <img class="diagram-preview" id="diagram-image" alt="Diagram preview" hidden>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tips">你可以直接说“把我上传的文件的整体流程图画一下”，也可以说“画出 transformer 流程图”。系统会自动判断使用哪种模式。</div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="card tab-pane" id="tab-figure" data-stage-title="论文配图" data-stage-description="生成方法框架图、实验对比图或研究闭环图，作为论文配图初稿。" data-stage-chip="插图">
+                        <div class="workbench">
+                            <div class="form-side">
+                                <div class="block-label">Figure Plan</div>
+                                <div class="focus-context" id="figure-focus-context"><strong>当前论文：</strong>未设置</div>
+                                <div class="quick-tasks">
+                                    <button class="quick-task-btn" data-fill-target="figure-prompt" data-fill-text="把当前论文画成方法框架图">方法框架图</button>
+                                    <button class="quick-task-btn" data-fill-target="figure-prompt" data-fill-text="把当前论文画成实验对比图">实验对比图</button>
+                                </div>
+                                <label for="figure-prompt">配图需求</label>
+                                <textarea id="figure-prompt" placeholder="例如：把我上传的论文画成方法框架图；或者：画一个 transformer 的方法框架图。"></textarea>
+                                <label for="figure-template">图模板</label>
+                                <select id="figure-template">
+                                    <option value="method_framework">方法框架图</option>
+                                    <option value="experiment_flow">实验流程图</option>
+                                    <option value="comparison">对比图</option>
+                                    <option value="ablation">消融说明图</option>
+                                </select>
+                                <details class="advanced-options">
+                                    <summary>高级选项</summary>
+                                    <div class="advanced-grid">
+                                        <select id="figure-style">
+                                            <option value="academic">学术风格</option>
+                                            <option value="minimal">极简风格</option>
+                                            <option value="presentation">汇报风格</option>
+                                        </select>
+                                        <select id="figure-detail">
+                                            <option value="low">低复杂度</option>
+                                            <option value="medium" selected>中复杂度</option>
+                                            <option value="high">高复杂度</option>
+                                        </select>
+                                        <select id="figure-language">
+                                            <option value="zh" selected>中文标签</option>
+                                            <option value="en">English labels</option>
+                                        </select>
+                                        <input id="figure-width" type="text" placeholder="宽度(可选，如1600)">
+                                    </div>
+                                </details>
+                                <div class="button-row">
+                                    <button class="primary" id="figure-btn">生成论文配图</button>
+                                    <button class="secondary" id="reuse-last-options-btn">复用上次参数</button>
+                                </div>
+                                <div class="diagram-actions" id="figure-feedback-actions">
+                                    <button class="secondary diagram-feedback-btn" data-target="figure" data-feedback="layout">布局不符</button>
+                                    <button class="secondary diagram-feedback-btn" data-target="figure" data-feedback="elements">元素不全</button>
+                                    <button class="secondary diagram-feedback-btn" data-target="figure" data-feedback="text">文字不准</button>
+                                    <button class="secondary diagram-feedback-btn" data-target="figure" data-feedback="style">风格不符</button>
+                                </div>
+                                <div class="output" id="figure-output">等待生成...</div>
+                                <div class="reliability-box" id="figure-reliability">可靠性状态：等待论文配图结果。</div>
+                                <div class="sources" id="figure-sources"></div>
+                            </div>
+                            <div class="result-side">
+                                <div class="block-label">Figure Preview</div>
+                                <div class="diagram-note" id="figure-note">生成后会显示图题、图注和来源。</div>
+                                <div class="diagram-stage">
+                                    <div class="preview-shell">
+                                        <div class="preview-orbit one"></div>
+                                        <div class="preview-orbit two"></div>
+                                        <div class="preview-head">
+                                            <span class="preview-badge">Figure Channel</span>
+                                            <span id="figure-stage-meta">等待生成配图信号</span>
+                                        </div>
+                                        <div class="preview-canvas">
+                                            <div class="preview-placeholder" id="figure-placeholder">
+                                                <strong>Figure Standby</strong>
+                                                这里会显示论文配图（PNG 或兜底 SVG）。适合先出结构，再继续拿去论文、PPT 或设计工具里微调。
+                                            </div>
+                                            <img class="diagram-preview" id="figure-image" alt="Figure preview" hidden>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tips">建议直接描述图类型，比如“方法框架图”“实验对比图”“研究闭环图”。如果你提到“我上传的论文”，系统会优先从知识库里抽内容。</div>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="card tab-pane" id="tab-reasoning-compare" data-stage-title="方法对比" data-stage-description="通过检索-对比-校验-结论链路，输出有证据绑定的方法比较结论。" data-stage-chip="推理">
+                        <div class="workbench">
+                            <div class="form-side">
+                                <div class="block-label">Method Compare</div>
+                                <label for="reasoning-question">对比问题</label>
+                                <textarea id="reasoning-question" placeholder="例如：在科研写作场景下，Dense retrieval 和 Hybrid retrieval 的优劣是什么？"></textarea>
+                                <label for="reasoning-method-a">方法 A</label>
+                                <input id="reasoning-method-a" type="text" placeholder="例如：Dense retrieval">
+                                <label for="reasoning-method-b">方法 B</label>
+                                <input id="reasoning-method-b" type="text" placeholder="例如：Hybrid retrieval">
+                                <div class="button-row">
+                                    <button class="primary" id="reasoning-compare-btn">开始对比</button>
+                                </div>
+                            </div>
+                            <div class="result-side">
+                                <div class="block-label">Reasoning Output</div>
+                                <div class="output" id="reasoning-compare-output">等待对比...</div>
+                                <div class="reliability-box" id="reasoning-compare-reliability">可靠性状态：等待对比结果。</div>
+                                <div class="button-row">
+                                    <button class="secondary" id="reasoning-to-writing-btn">带入写作帮助</button>
+                                    <button class="secondary" id="reasoning-to-validate-btn">带入论文校验</button>
+                                    <button class="primary" id="reasoning-generate-draft-btn">生成方法段落草稿</button>
+                                </div>
+                                <div class="sources" id="reasoning-compare-meta"></div>
+                                <div class="excerpt-list" id="reasoning-compare-evidence"></div>
+                            </div>
+                        </div>
+                    </article>
+
+                </div>
+            </section>
+        </section>
+
+        <p class="footer">推荐通过 <code>http://localhost:8000</code> 打开本页面，避免静态文件直开带来的接口与跨域问题。</p>
+    </main>
+    <script>
+        function setButtonState(button, busy, busyText, idleText) {
+            button.disabled = busy;
+            button.textContent = busy ? busyText : idleText;
+            button.style.opacity = busy ? "0.72" : "1";
+            button.style.cursor = busy ? "wait" : "none";
+        }
+
+        async function requestJson(url, options = {}) {
+            const response = await fetch(url, {
+                headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+                ...options
+            });
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || "Request failed");
+            }
+            return response.json();
+        }
+
+        async function refreshStatus() {
+            const backendStatus = document.getElementById("backend-status");
+            const apiStatus = document.getElementById("api-status");
+            const mmdcStatus = document.getElementById("mmdc-status");
+            const statusDetail = document.getElementById("status-detail");
+            try {
+                await requestJson("/health");
+                backendStatus.textContent = "正常";
+                const status = await requestJson("/api/status");
+                const ix = status.index_state || {};
+                if (lastIndexingState && !ix.indexing) {
+                    await refreshDocuments();
+                    await loadDocumentScope();
+                }
+                lastIndexingState = Boolean(ix.indexing);
+                if (ix.indexing) {
+                    if (!indexPollTimer) {
+                        indexPollTimer = setInterval(() => {
+                            refreshStatus();
+                        }, 2500);
+                    }
+                } else {
+                    clearIndexPoll();
+                }
+                const modelConfigured = Boolean(
+                    status.codex_api_configured || status.google_api_configured || status.open_api_configured
+                );
+                const providerLabel = status.text_primary_provider ? `（${status.text_primary_provider}）` : "";
+                apiStatus.textContent = modelConfigured ? `已配置${providerLabel}` : "未配置";
+                mmdcStatus.textContent = status.mermaid_renderer_available ? "可用" : "未安装";
+                const details = [];
+                if (status.vector_store_error) details.push(`知识库：${status.vector_store_error}`);
+                if (status.model_error) details.push(`模型：${status.model_error}`);
+                if (status.generation_health && status.generation_health.last_generation_error) details.push(`生成：${status.generation_health.last_generation_error}`);
+                if (status.analysis_model) details.push(`问答模型：${status.analysis_model}`);
+                if (status.mentor_model) details.push(`导师模型：${status.mentor_model}`);
+                if (status.figure_model) details.push(`配图模型：${status.figure_model}`);
+                if (status.retrieval_mode) details.push(`检索模式：${status.retrieval_mode}`);
+                details.push(`向量可用：${status.vector_store_ready ? "是" : "否"}`);
+                details.push(`知识库可用：${status.knowledge_base_ready ? "是" : "否"}`);
+                if (ix && typeof ix.indexing === "boolean") {
+                    details.push(`索引：${ix.indexing ? "进行中" : "空闲"}`);
+                    if (ix.last_chunk_count != null) details.push(`最近块数：${ix.last_chunk_count}`);
+                    if (ix.last_ingest_error) details.push(`索引错误：${ix.last_ingest_error}`);
+                }
+                if (status.last_retrieval_source) details.push(`最近检索来源：${status.last_retrieval_source}`);
+                if (status.product_metrics) details.push(`会话请求数：${status.product_metrics.chat_requests || 0}/${status.product_metrics.writing_help_requests || 0}/${status.product_metrics.figure_requests || 0}`);
+                if (Array.isArray(status.skills) && status.skills.length) {
+                    details.push(`已注册skills：${status.skills.map((item) => item.skill_id).join(", ")}`);
+                }
+                statusDetail.textContent = details.length ? details.join(" | ") : "当前核心服务状态正常。";
+            } catch (error) {
+                backendStatus.textContent = "离线";
+                apiStatus.textContent = "未知";
+                mmdcStatus.textContent = "未知";
+                statusDetail.textContent = `状态读取失败：${error.message}`;
+                clearIndexPoll();
+            }
+        }
+
+        const fileInput = document.getElementById("pdf-file");
+        const fileMeta = document.getElementById("file-meta");
+        const uploadButton = document.getElementById("upload-btn");
+        const ingestButton = document.getElementById("ingest-btn");
+        const diagramNote = document.getElementById("diagram-note");
+        const copyDiagramButton = document.getElementById("copy-diagram-btn");
+        const downloadDiagramButton = document.getElementById("download-diagram-btn");
+        const cursorDot = document.getElementById("cursor-dot");
+        const cursorRing = document.getElementById("cursor-ring");
+        const cursorGlow = document.getElementById("cursor-glow");
+        const entryOverlay = document.getElementById("entry-overlay");
+        const aurora = document.getElementById("aurora");
+        const diagramPlaceholder = document.getElementById("diagram-placeholder");
+        const diagramStageMeta = document.getElementById("diagram-stage-meta");
+        const figurePlaceholder = document.getElementById("figure-placeholder");
+        const figureStageMeta = document.getElementById("figure-stage-meta");
+        const figureImage = document.getElementById("figure-image");
+        const figureOutput = document.getElementById("figure-output");
+        const figureSources = document.getElementById("figure-sources");
+        const figureNote = document.getElementById("figure-note");
+        const reasoningCompareOutput = document.getElementById("reasoning-compare-output");
+        const reasoningCompareReliability = document.getElementById("reasoning-compare-reliability");
+        const reasoningCompareMeta = document.getElementById("reasoning-compare-meta");
+        const reasoningCompareEvidence = document.getElementById("reasoning-compare-evidence");
+        const reasoningToWritingButton = document.getElementById("reasoning-to-writing-btn");
+        const reasoningToValidateButton = document.getElementById("reasoning-to-validate-btn");
+        const reasoningGenerateDraftButton = document.getElementById("reasoning-generate-draft-btn");
+        const chatReliability = document.getElementById("chat-reliability");
+        const diagramReliability = document.getElementById("diagram-reliability");
+        const figureReliability = document.getElementById("figure-reliability");
+        const writingHelpOutput = document.getElementById("writing-help-output");
+        const writingHelpEvidence = document.getElementById("writing-help-evidence");
+        const writingHelpRisks = document.getElementById("writing-help-risks");
+        const writingDocScope = document.getElementById("writing-doc-scope");
+        const validateDocScope = document.getElementById("validate-doc-scope");
+        const validateOutput = document.getElementById("validate-output");
+        const validateIssues = document.getElementById("validate-issues");
+        const validateNextAction = document.getElementById("validate-next-action");
+        const mainlineChip = document.getElementById("mainline-chip");
+        const workflowQuickStatus = document.getElementById("workflow-quick-status");
+        const documentList = document.getElementById("document-list");
+        const focusDocNote = document.getElementById("focus-doc-note");
+        const chatFocusContext = document.getElementById("chat-focus-context");
+        const writingFocusContext = document.getElementById("writing-focus-context");
+        const diagramFocusContext = document.getElementById("diagram-focus-context");
+        const figureFocusContext = document.getElementById("figure-focus-context");
+        const workflowSessionMeta = document.getElementById("workflow-session-meta");
+        const workflowMentorDispatch = document.getElementById("workflow-mentor-dispatch");
+        const workflowMentorReview = document.getElementById("workflow-mentor-review");
+        const workflowStepList = document.getElementById("workflow-step-list");
+        const reuseLastOptionsButton = document.getElementById("reuse-last-options-btn");
+        const stageSwitcher = document.getElementById("stage-switcher");
+        const stageTitle = document.getElementById("stage-title");
+        const stageDescription = document.getElementById("stage-description");
+        const stageChip = document.getElementById("stage-chip");
+        const feedbackButtons = document.querySelectorAll(".diagram-feedback-btn");
+
+        let pointerX = window.innerWidth / 2;
+        let pointerY = window.innerHeight / 2;
+        let ringX = pointerX;
+        let ringY = pointerY;
+        let glowX = pointerX;
+        let glowY = pointerY;
+        const LAST_OPTIONS_KEY = "sci-copilot-last-generate-options";
+        let lastDiagramPrompt = "";
+        let lastFigurePrompt = "";
+        let lastDraftTemplate = "";
+        let lastValidationText = "";
+        let lastReasoningPayload = null;
+        let mainlineStep = "文献库";
+        let pendingDiagramFeedback = [];
+        let pendingFigureFeedback = [];
+        let workflowSessionId = "";
+        let workflowNeedsRevision = false;
+        let workflowPollTimer = null;
+        let indexPollTimer = null;
+        let lastIndexingState = false;
+        let currentFocusDocument = "";
+
+        function clearIndexPoll() {
+            if (indexPollTimer) {
+                clearInterval(indexPollTimer);
+                indexPollTimer = null;
+            }
+        }
+
+        function userHintFromError(data) {
+            if (!data || !data.error_code) return "";
+            return `提示(${data.error_code})：${data.error_hint || "请稍后重试。"}`;
+        }
+
+        function escapeHtml(text) {
+            if (text == null || text === undefined) return "";
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
+        }
+
+        function renderReliability(container, data, label) {
+            if (!container) return;
+            if (!data || !data.error_code) {
+                container.classList.remove("warn");
+                container.textContent = `可靠性状态：${label}链路正常。`;
+                return;
+            }
+            const degraded = Boolean(data.degraded);
+            const retryable = Boolean(data.retryable);
+            const modeText = degraded ? "降级返回" : "异常返回";
+            const retryText = retryable ? "可重试" : "需先修复配置";
+            container.classList.toggle("warn", degraded || Boolean(data.error_code));
+            container.textContent = `可靠性状态：${modeText} | ${retryText} | ${data.error_code} | ${data.error_hint || "请稍后重试。"}`;
+        }
+
+        function checkCitationCompleteness(baseDraft, evidenceLines) {
+            const issues = [];
+            const hasEvidenceIndex = Array.isArray(evidenceLines) && evidenceLines.length > 0;
+            const citationMatches = String(baseDraft || "").match(/\[\d+\]/g) || [];
+            if (!hasEvidenceIndex) {
+                issues.push("缺少证据索引，无法绑定引用。");
+            }
+            if (!citationMatches.length) {
+                issues.push("草稿中未检测到引用标记（如 [1]）。");
+            }
+            if (citationMatches.length && hasEvidenceIndex) {
+                const maxRef = citationMatches
+                    .map((item) => Number.parseInt(item.replace("[", "").replace("]", ""), 10))
+                    .filter((n) => Number.isFinite(n))
+                    .reduce((acc, n) => Math.max(acc, n), 0);
+                if (maxRef > evidenceLines.length) {
+                    issues.push(`引用编号超出证据范围（最大引用 [${maxRef}]，证据仅 ${evidenceLines.length} 条）。`);
+                }
+            }
+            return { ok: issues.length === 0, issues };
+        }
+
+        function parseOptionalInt(value) {
+            const trimmed = (value || "").trim();
+            if (!trimmed) return null;
+            const parsed = Number.parseInt(trimmed, 10);
+            return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        function selectedDocumentScope() {
+            return Array.from(document.querySelectorAll('#writing-doc-scope input[type="checkbox"]:checked')).map((cb) => cb.value).filter(Boolean);
+        }
+
+        function selectedValidateRefScope() {
+            return Array.from(document.querySelectorAll('#validate-doc-scope input[type="checkbox"]:checked')).map((cb) => cb.value).filter(Boolean);
+        }
+
+        function fillReferenceCheckboxList(containerEl, docs, focusDocument) {
+            if (!containerEl) return;
+            const refs = Array.isArray(docs) ? docs.filter((doc) => doc.source !== focusDocument) : [];
+            if (!refs.length) {
+                containerEl.innerHTML = '<div class="ref-empty">暂无其他参考文献（仅显示非当前论文）</div>';
+                return;
+            }
+            containerEl.innerHTML = refs.map((doc) =>
+                `<label class="ref-checkbox-item"><input type="checkbox" value="${doc.source}"><span>${doc.source}</span></label>`
+            ).join('');
+        }
+
+        function mapValidateScopeToRewriteSection(scope) {
+            const m = {
+                abstract: "abstract",
+                introduction: "introduction",
+                method: "method",
+                experiment: "experiment",
+                ending: "conclusion",
+                conclusion: "conclusion",
+                full: "custom",
+                custom: "custom",
+            };
+            return m[scope] || "custom";
+        }
+
+        function mapValidateScopeToWorkflowSection(scope) {
+            const m = {
+                abstract: "abstract",
+                introduction: "introduction",
+                method: "method",
+                experiment: "experiment",
+                ending: "conclusion",
+                full: "method",
+                custom: "method",
+            };
+            return m[scope] || "method";
+        }
+
+        function updateMainline(stepText) {
+            mainlineStep = stepText;
+            mainlineChip.textContent = `主轴：${stepText}`;
+        }
+
+        function renderFocusContext(source) {
+            const label = source ? `<strong>当前论文：</strong>${source}` : `<strong>当前论文：</strong>未设置`;
+            if (focusDocNote) if (focusDocNote) if (focusDocNote) if (focusDocNote) focusDocNote.innerHTML = label;
+            if (chatFocusContext) chatFocusContext.innerHTML = label;
+            if (writingFocusContext) writingFocusContext.innerHTML = label;
+            if (diagramFocusContext) diagramFocusContext.innerHTML = label;
+            if (figureFocusContext) figureFocusContext.innerHTML = label;
+            const validateFocusContext = document.getElementById("validate-focus-context");
+            if (validateFocusContext) validateFocusContext.innerHTML = label;
+        }
+
+        async function setFocusDocument(source) {
+            await requestJson("/api/documents/focus", {
+                method: "POST",
+                body: JSON.stringify({ source }),
+            });
+            await refreshDocuments();
+        }
+
+        async function refreshDocuments() {
+            try {
+                const payload = await requestJson("/api/documents");
+                const documents = Array.isArray(payload.documents) ? payload.documents : [];
+                const focusDocument = payload.focus_document || "";
+                currentFocusDocument = focusDocument;
+                renderFocusContext(focusDocument);
+                fillReferenceCheckboxList(writingDocScope, documents, focusDocument);
+                fillReferenceCheckboxList(validateDocScope, documents, focusDocument);
+                if (!documents.length) {
+                    if (documentList) documentList.innerHTML = '<div class="document-item"><div><strong>还没有文献</strong><small>上传 PDF 后会在这里显示，并可设为当前论文。</small></div></div>';
+                    return;
+                }
+                if (!documentList) return;
+                if (!documentList) return;
+                if (!documentList) return;
+                if (!documentList) return;
+                documentList.innerHTML = documents.map((doc) => {
+                    const updated = doc.updated_at ? new Date(doc.updated_at * 1000).toLocaleString("zh-CN") : "未知时间";
+                    const status = doc.ingested ? "已索引" : "未索引";
+                    const action = doc.is_focus
+                        ? '<span class="focus-pill">当前论文</span>'
+                        : `<button class="secondary focus-doc-btn" data-source="${doc.source}">设为当前论文</button>`;
+                    return `
+                        <div class="document-item ${doc.is_focus ? "focus" : ""}">
+                            <div>
+                                <strong>${doc.source}</strong>
+                                <small>${status} · 更新时间 ${updated}</small>
+                            </div>
+                            <div>${action}</div>
+                        </div>
+                    `;
+                }).join("");
+                document.querySelectorAll(".focus-doc-btn").forEach((button) => {
+                    button.addEventListener("click", async () => {
+                        setButtonState(button, true, "切换中...", "设为当前论文");
+                        try {
+                            await setFocusDocument(button.dataset.source || "");
+                        } catch (error) {
+                            if (focusDocNote) focusDocNote.textContent = `切换失败：${error.message}`;
+                        } finally {
+                            setButtonState(button, false, "切换中...", "设为当前论文");
+                        }
+                    });
+                });
+            } catch (error) {
+                if (focusDocNote) focusDocNote.textContent = `文献列表读取失败：${error.message}`;
+            }
+        }
+
+        function clearWorkflowPoll() {
+            if (workflowPollTimer) {
+                clearInterval(workflowPollTimer);
+                workflowPollTimer = null;
+            }
+        }
+
+        function summarizeStepOutput(stepId, output) {
+            if (!output || typeof output !== "object") return "无输出";
+            if (stepId === "mentor_dispatch") {
+                const plan = Array.isArray(output.plan) ? output.plan.slice(0, 2).join(" / ") : "";
+                return plan || output.analysis_focus || "导师已分派任务";
+            }
+            if (stepId === "analysis") {
+                return output.recommendation || `证据数：${(output.evidence || []).length || 0}`;
+            }
+            if (stepId === "writer") {
+                return output.rewritten_text ? `草稿长度：${output.rewritten_text.length}` : "已执行重写";
+            }
+            if (stepId === "validate") {
+                return output.summary || `high 风险：${output.high_risk_count || 0}`;
+            }
+            if (stepId === "figure") {
+                return output.caption || output.error_hint || "已生成配图结果";
+            }
+            if (stepId === "citations") {
+                return `引用条目：${(output.citations || []).length || 0}`;
+            }
+            if (stepId === "mentor_review") {
+                return output.final_summary || output.go_next || "导师已给出复审";
+            }
+            return output.summary || "步骤完成";
+        }
+
+        function renderWorkflowSession(session) {
+            if (!session || typeof session !== "object") return;
+            const statusText = session.status || "unknown";
+            const sessionId = session.session_id || workflowSessionId || "未分配";
+            workflowSessionMeta.textContent = [
+                `会话：${sessionId}`,
+                `状态：${statusText}`,
+                `步骤：${session.current_step || 0}`,
+                session.pending_action ? `待处理：${session.pending_action}` : "",
+            ].filter(Boolean).join(" | ");
+
+            const steps = Array.isArray(session.steps) ? session.steps : [];
+            if (!steps.length) {
+                workflowStepList.innerHTML = "<li>尚无步骤记录。</li>";
+            } else {
+                workflowStepList.innerHTML = steps.map((item, idx) => {
+                    const stepId = item.step_id || `step_${idx + 1}`;
+                    const output = item.output || {};
+                    const marker = output.degraded ? "degraded" : (output.error_code ? "error" : "ok");
+                    const summary = summarizeStepOutput(stepId, output);
+                    return `<li>${stepId}<small>${marker}</small>：${summary}</li>`;
+                }).join("");
+            }
+
+            const dispatchStep = steps.find((item) => item.step_id === "mentor_dispatch");
+            const reviewStep = steps.find((item) => item.step_id === "mentor_review");
+            if (dispatchStep && dispatchStep.output) {
+                const dispatch = dispatchStep.output;
+                const planText = Array.isArray(dispatch.plan) && dispatch.plan.length
+                    ? dispatch.plan.slice(0, 4).join(" -> ")
+                    : (dispatch.analysis_focus || "导师已分派任务。");
+                workflowMentorDispatch.textContent = planText;
+            } else {
+                workflowMentorDispatch.textContent = "等待导师分派。";
+            }
+            if (reviewStep && reviewStep.output) {
+                const review = reviewStep.output;
+                const risks = Array.isArray(review.risk_notes) ? review.risk_notes.join("；") : "";
+                workflowMentorReview.textContent = [review.final_summary || "", review.go_next || "", risks ? `风险：${risks}` : ""]
+                    .filter(Boolean)
+                    .join(" | ") || "导师已完成复审。";
+            } else {
+                workflowMentorReview.textContent = "等待导师复审。";
+            }
+            if (statusText === "needs_revision") {
+                const pendingIssues = session.result && Array.isArray(session.result.pending_high_risk_issues)
+                    ? session.result.pending_high_risk_issues
+                    : [];
+                if (pendingIssues.length) {
+                    const issueText = pendingIssues
+                        .slice(0, 3)
+                        .map((item, idx) => `${idx + 1}) ${item.category || "issue"}: ${item.message || "请修订"}`)
+                        .join("；");
+                    validateNextAction.textContent = `编排拦截：检测到 high 风险问题。${issueText}`;
+                }
+            }
+        }
+
+        function startWorkflowPolling(sessionId) {
+            clearWorkflowPoll();
+            if (!sessionId) return;
+            workflowPollTimer = setInterval(async () => {
+                try {
+                    const data = await requestJson(`/api/workflows/${sessionId}`);
+                    renderWorkflowSession(data);
+                    workflowNeedsRevision = data.status === "needs_revision";
+                    if (["completed", "failed"].includes(data.status || "")) {
+                        clearWorkflowPoll();
+                    }
+                } catch (error) {
+                    clearWorkflowPoll();
+                }
+            }, 4000);
+        }
+
+        async function loadDocumentScope() {
+            try {
+                const data = await requestJson("/api/documents");
+                const docs = Array.isArray(data.documents) ? data.documents : [];
+                const focus = data.focus_document || "";
+                fillReferenceCheckboxList(writingDocScope, docs, focus);
+                fillReferenceCheckboxList(validateDocScope, docs, focus);
+            } catch (error) {
+                if (writingDocScope) writingDocScope.innerHTML = '<div class="ref-empty">文献列表读取失败</div>';
+                if (validateDocScope) validateDocScope.innerHTML = '<div class="ref-empty">文献列表读取失败</div>';
+            }
+        }
+
+        function getGenerationOptions(kind) {
+            const prefix = kind === "diagram" ? "diagram" : "figure";
+            const options = {
+                style: document.getElementById(`${prefix}-style`).value,
+                detail_level: document.getElementById(`${prefix}-detail`).value,
+                language: document.getElementById(`${prefix}-language`).value,
+                width: parseOptionalInt(document.getElementById(`${prefix}-width`).value),
+                height: null
+            };
+            if (kind === "figure") {
+                options.template_type = document.getElementById("figure-template").value;
+            }
+            return options;
+        }
+
+        function saveLastOptions(kind, options) {
+            const current = JSON.parse(localStorage.getItem(LAST_OPTIONS_KEY) || "{}");
+            current[kind] = options;
+            localStorage.setItem(LAST_OPTIONS_KEY, JSON.stringify(current));
+        }
+
+        function applyLastOptions() {
+            const current = JSON.parse(localStorage.getItem(LAST_OPTIONS_KEY) || "{}");
+            const opts = current.figure || current.diagram;
+            if (!opts) {
+                figureNote.textContent = "暂无可复用参数，请先生成一次流程图或配图。";
+                return;
+            }
+            document.getElementById("figure-style").value = opts.style || "academic";
+            document.getElementById("figure-detail").value = opts.detail_level || "medium";
+            document.getElementById("figure-language").value = opts.language || "zh";
+            document.getElementById("figure-width").value = opts.width || "";
+            if (opts.template_type) {
+                document.getElementById("figure-template").value = opts.template_type;
+            }
+            figureNote.textContent = "已复用最近一次生成参数。";
+        }
+
+        async function loadFigureTemplates() {
+            const select = document.getElementById("figure-template");
+            try {
+                const data = await requestJson("/api/figure/templates");
+                const templates = Array.isArray(data.templates) ? data.templates : [];
+                if (!templates.length) return;
+                const currentValue = select.value;
+                select.innerHTML = templates
+                    .map(item => `<option value="${item.id}">${item.name}</option>`)
+                    .join("");
+                if (templates.some(item => item.id === currentValue)) {
+                    select.value = currentValue;
+                }
+            } catch (error) {
+                // Keep static options when template endpoint is unavailable.
+            }
+        }
+
+        function setLoadingState(output, message) {
+            output.textContent = message;
+            output.classList.add("loading");
+        }
+
+        function clearLoadingState(output, message) {
+            if (typeof message === "string") output.textContent = message;
+            output.classList.remove("loading");
+        }
+
+        function activateTab(targetId) {
+            const tabs = Array.from(document.querySelectorAll("[data-tab-target]"));
+            const panes = Array.from(document.querySelectorAll(".tab-pane"));
+            const nextPane = document.getElementById(targetId);
+            if (!nextPane || nextPane.classList.contains("active")) return;
+
+            tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.tabTarget === targetId));
+            panes.forEach((pane) => pane.classList.toggle("active", pane.id === targetId));
+
+            stageTitle.textContent = nextPane.dataset.stageTitle || "";
+            stageDescription.textContent = nextPane.dataset.stageDescription || "";
+            stageChip.textContent = nextPane.dataset.stageChip || "";
+
+            stageSwitcher.classList.remove("switching");
+            void stageSwitcher.offsetWidth;
+            stageSwitcher.classList.add("switching");
+            setTimeout(() => stageSwitcher.classList.remove("switching"), 760);
+        }
+
+        function animateCursor() {
+            ringX += (pointerX - ringX) * 0.18;
+            ringY += (pointerY - ringY) * 0.18;
+            glowX += (pointerX - glowX) * 0.08;
+            glowY += (pointerY - glowY) * 0.08;
+            cursorDot.style.transform = `translate(${pointerX - 4}px, ${pointerY - 4}px)`;
+            cursorRing.style.transform = `translate(${ringX - cursorRing.offsetWidth / 2}px, ${ringY - cursorRing.offsetHeight / 2}px)`;
+            cursorGlow.style.transform = `translate(${glowX - 160}px, ${glowY - 160}px)`;
+            requestAnimationFrame(animateCursor);
+        }
+        requestAnimationFrame(animateCursor);
+        setTimeout(() => {
+            document.body.classList.add("ready");
+            entryOverlay?.remove();
+        }, 2800);
+        document.body.classList.add("ready");
+
+        document.addEventListener("mousemove", (event) => {
+            pointerX = event.clientX;
+            pointerY = event.clientY;
+            document.documentElement.style.setProperty("--mouse-x", `${event.clientX}`);
+            document.documentElement.style.setProperty("--mouse-y", `${event.clientY}`);
+            aurora.style.transform = `translate(${(event.clientX / window.innerWidth - 0.5) * 12}px, ${(event.clientY / window.innerHeight - 0.5) * 12}px)`;
+        });
+
+        document.querySelectorAll("button, a, label, textarea, input, .panel").forEach((element) => {
+            element.addEventListener("mouseenter", () => cursorRing.classList.add("active"));
+            element.addEventListener("mouseleave", () => cursorRing.classList.remove("active"));
+        });
+
+        document.querySelectorAll(".panel").forEach((panel) => {
+            panel.addEventListener("mousemove", (event) => {
+                const rect = panel.getBoundingClientRect();
+                panel.style.setProperty("--mx", `${event.clientX - rect.left}px`);
+                panel.style.setProperty("--my", `${event.clientY - rect.top}px`);
+            });
+        });
+
+        document.querySelectorAll("[data-fill-target]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const targetId = button.dataset.fillTarget || "";
+                const target = document.getElementById(targetId);
+                if (!target) return;
+                target.value = button.dataset.fillText || "";
+                target.focus();
+                if (targetId === "question") activateTab("tab-chat");
+                if (targetId === "writing-question") activateTab("tab-writing-help");
+                if (targetId === "diagram-prompt") activateTab("tab-diagram");
+                if (targetId === "figure-prompt") activateTab("tab-figure");
+            });
+        });
+
+        document.querySelectorAll("[data-tab-target]").forEach((button) => {
+            button.addEventListener("click", () => activateTab(button.dataset.tabTarget));
+        });
+
+        fileInput.addEventListener("change", () => {
+            const file = fileInput.files[0];
+            if (!file) {
+                fileMeta.textContent = "尚未选择文件。";
+                return;
+            }
+            const sizeInMb = (file.size / 1024 / 1024).toFixed(2);
+            fileMeta.textContent = `已选择：${file.name} (${sizeInMb} MB)`;
+        });
+
+        uploadButton.addEventListener("click", async () => {
+            const output = document.getElementById("ingest-output");
+            const file = fileInput.files[0];
+            if (!file) {
+                output.textContent = "请先选择一个 PDF 文件。";
+                return;
+            }
+            const formData = new FormData();
+            formData.append("file", file);
+            setLoadingState(output, "正在上传 PDF，请稍候...");
+            setButtonState(uploadButton, true, "上传中...", "上传文献");
+            setButtonState(ingestButton, true, "请稍候...", "重新索引");
+            try {
+                const response = await fetch("/api/documents/upload", { method: "POST", body: formData });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || "Upload failed");
+                clearLoadingState(
+                    output,
+                    `${data.message}\n文件：${data.filename}\n当前文献总数：${data.total_pdfs}\n（正在后台更新索引，状态栏可查看进度）`
+                );
+                if (data.replaced) fileMeta.textContent = `已覆盖同名文件：${data.filename}`;
+                await refreshStatus();
+                await refreshDocuments();
+            } catch (error) {
+                clearLoadingState(output, `上传失败：${error.message}`);
+            } finally {
+                setButtonState(uploadButton, false, "上传中...", "上传文献");
+                setButtonState(ingestButton, false, "请稍候...", "重新索引");
+            }
+        });
+
+        ingestButton.addEventListener("click", async () => {
+            const output = document.getElementById("ingest-output");
+            setLoadingState(output, "正在重新索引（解析 PDF 并写入向量库），请稍候...");
+            setButtonState(uploadButton, true, "请稍候...", "上传文献");
+            setButtonState(ingestButton, true, "索引中...", "重新索引");
+            try {
+                const data = await requestJson("/api/knowledge/ingest", { method: "POST" });
+                clearLoadingState(output, `${data.message}\n现在可以直接在右侧发起文献问答或知识库绘图。`);
+                await refreshStatus();
+                await refreshDocuments();
+                await loadDocumentScope();
+                updateMainline("索引已更新");
+            } catch (error) {
+                clearLoadingState(output, `索引失败：${error.message}`);
+            } finally {
+                setButtonState(uploadButton, false, "请稍候...", "上传文献");
+                setButtonState(ingestButton, false, "索引中...", "重新索引");
+            }
+        });
+
+        document.getElementById("writing-help-btn").addEventListener("click", async () => {
+            const question = document.getElementById("writing-question").value.trim();
+            if (!question) {
+                writingHelpOutput.textContent = "请先填写写作问题。";
+                return;
+            }
+
+            setLoadingState(writingHelpOutput, "正在生成写作建议...");
+            writingHelpEvidence.innerHTML = "";
+            writingHelpRisks.textContent = "";
+            try {
+                const reference_documents = selectedDocumentScope();
+                const data = await requestJson("/api/writing/help", {
+                    method: "POST",
+                    body: JSON.stringify({ topic: currentFocusDocument || "", question, reference_documents }),
+                });
+                lastDraftTemplate = data.draft_template || "";
+                if (data.error_code && data.error_hint) {
+                    clearLoadingState(writingHelpOutput, `${data.recommendation}\n\n${data.error_hint}`);
+                } else {
+                    clearLoadingState(writingHelpOutput, `${data.recommendation}\n\n可用模板：\n${data.draft_template}`);
+                }
+                writingHelpEvidence.innerHTML = (data.evidence || []).length
+                    ? data.evidence.map((item) => {
+                        const trace = [item.page ? `p.${item.page}` : "", item.chunk_id || ""].filter(Boolean).join(" | ");
+                        const role = item.evidence_role === "reference" ? "参考文献" : "你的稿件";
+                        return `<div class="excerpt-card"><strong>[${role}] ${item.source}</strong><p>${item.snippet}</p><p>${trace ? `追溯：${trace}` : ""}</p></div>`;
+                    }).join("")
+                    : '<div class="excerpt-card"><p>当前没有命中证据片段；请确认当前论文已索引并（可选）勾选参考文献。</p></div>';
+                writingHelpRisks.textContent = (data.risk_notes || []).length
+                    ? `风险提示：${data.risk_notes.join("；")}`
+                    : "风险提示：当前未检测到明显风险。";
+                if (data.retrieval_source) {
+                    writingHelpRisks.textContent = `${writingHelpRisks.textContent} | 检索来源：${data.retrieval_source}`;
+                }
+                updateMainline("写作建议已生成");
+            } catch (error) {
+                clearLoadingState(writingHelpOutput, `写作建议生成失败：${error.message}`);
+            }
+        });
+
+        document.getElementById("validate-btn").addEventListener("click", async () => {
+            const validate_scope = document.getElementById("validate-scope").value;
+            const validateTextEl = document.getElementById("validate-text");
+            const overrideText = validateTextEl ? validateTextEl.value.trim() : "";
+            if (overrideText.length > 0 && overrideText.length < 20) {
+                validateOutput.textContent = "高级覆盖文本不足 20 字；请加长或清空以使用 PDF 截取。";
+                return;
+            }
+
+            setLoadingState(validateOutput, "正在校验…");
+            validateIssues.innerHTML = "";
+            try {
+                const payload = {
+                    validate_scope,
+                    reference_documents: selectedValidateRefScope(),
+                    use_llm_review: true,
+                };
+                if (overrideText.length >= 20) {
+                    payload.text = overrideText;
+                    payload.section = mapValidateScopeToRewriteSection(validate_scope);
+                }
+                const data = await requestJson("/api/writing/validate", {
+                    method: "POST",
+                    body: JSON.stringify(payload),
+                });
+                const note = data.extraction_note ? `\n截取说明：${data.extraction_note}` : "";
+                const llmNote = data.llm_review_used ? "" : "\n（模型审稿未启用或不可用，仅规则检查）";
+                clearLoadingState(validateOutput, `${data.summary}${note}${llmNote}`);
+                validateIssues.innerHTML = (data.issues || []).map((item) => {
+                    const orig = item.original_text
+                        ? `<div class="issue-original">${escapeHtml(item.original_text)}</div>`
+                        : "";
+                    const ex = (item.rewrite_example && String(item.rewrite_example).trim()) || "";
+                    const exBlock = ex
+                        ? `<p class="issue-example"><strong>示例：</strong><span class="issue-example-body">${escapeHtml(ex).replace(/\n/g, "<br>")}</span></p>`
+                        : '<p class="issue-example muted"><strong>示例：</strong>（无，可重试校验或按建议自写一句）</p>';
+                    return `<div class="excerpt-card"><strong>[${escapeHtml(item.severity)}] ${escapeHtml(item.category)}</strong>${orig}<p>${escapeHtml(item.message).replace(/\n/g, "<br>")}</p><p><strong>建议：</strong>${escapeHtml(item.suggestion).replace(/\n/g, "<br>")}</p>${exBlock}</div>`;
+                }).join("");
+                validateNextAction.textContent = data.high_risk_count > 0
+                    ? `当前 high 风险问题 ${data.high_risk_count} 个。${data.next_action || "请先重写并复检后再导出。"}`
+                    : "未检测到 high 风险问题，可继续导出或进入配图阶段。";
+                lastValidationText = data.validated_text || overrideText || "";
+                if (data.validated_text && validateTextEl) {
+                    validateTextEl.value = data.validated_text;
+                }
+                updateMainline(data.high_risk_count > 0 ? "发现高风险，需重写复检" : "论文校验已完成");
+            } catch (error) {
+                clearLoadingState(validateOutput, `校验失败：${error.message}`);
+            }
+        });
+
+        document.getElementById("handoff-to-writing-btn").addEventListener("click", () => {
+            const question = document.getElementById("question").value.trim();
+            if (!question) {
+                document.getElementById("chat-output").textContent = "请先在文献问答里输入问题。";
+                return;
+            }
+            document.getElementById("writing-question").value = question;
+            activateTab("tab-writing-help");
+            updateMainline("已从问答带入写作");
+        });
+
+        document.getElementById("writing-to-validate-btn").addEventListener("click", () => {
+            activateTab("tab-writing-validate");
+            updateMainline("已从写作带入校验");
+        });
+
+        document.getElementById("rewrite-btn").addEventListener("click", async () => {
+            const text = lastValidationText;
+            if (!text || text.length < 20) {
+                validateOutput.textContent = "请先执行校验以获取待重写段落。";
+                return;
+            }
+            setLoadingState(validateOutput, "正在按导师建议重写段落...");
+            try {
+                const data = await requestJson("/api/writing/rewrite", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        section: mapValidateScopeToRewriteSection(document.getElementById("validate-scope").value),
+                        text,
+                        focus: "先处理 high/medium 问题，再统一术语和引用风格",
+                    }),
+                });
+                lastValidationText = data.rewritten_text || text;
+                clearLoadingState(validateOutput, `重写完成，可再次校验。\n\n${(data.notes || []).join("；")}`);
+                validateNextAction.textContent = "重写已完成，建议立即再次执行校验确认 high 风险是否消除。";
+                updateMainline("重写完成，建议再次校验");
+            } catch (error) {
+                clearLoadingState(validateOutput, `重写失败：${error.message}`);
+            }
+        });
+
+        document.getElementById("workflow-quick-run-btn").addEventListener("click", async () => {
+            const topic = currentFocusDocument || "当前论文";
+            const stage = "draft";
+            const question = document.getElementById("writing-question").value.trim();
+            if (!question) {
+                workflowQuickStatus.textContent = "请先在写作帮助中填写问题。";
+                return;
+            }
+            workflowQuickStatus.textContent = "正在运行自动编排...";
+            try {
+                const data = await requestJson("/api/workflows/run", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        workflow_id: "question_to_submission_paragraph",
+                        topic,
+                        stage,
+                        question,
+                        section: mapValidateScopeToWorkflowSection(document.getElementById("validate-scope").value),
+                        figure_prompt: document.getElementById("figure-prompt").value.trim(),
+                        template_type: document.getElementById("figure-template").value,
+                        style: document.getElementById("figure-style").value,
+                        detail_level: document.getElementById("figure-detail").value,
+                        language: document.getElementById("figure-language").value,
+                        document_scope: selectedDocumentScope(),
+                    }),
+                });
+                workflowSessionId = data.session_id || "";
+                workflowNeedsRevision = data.status === "needs_revision";
+                const summary = data.result && data.result.mentor_summary ? data.result.mentor_summary : "已完成自动编排。";
+                workflowQuickStatus.textContent = `会话 ${workflowSessionId}：${data.status} | ${summary}`;
+                renderWorkflowSession(data);
+                startWorkflowPolling(workflowSessionId);
+                if (data.status === "needs_revision") {
+                    const draftText = data.result && data.result.draft_paragraph ? data.result.draft_paragraph : "";
+                    if (draftText) {
+                        lastValidationText = draftText;
+                    }
+                    validateNextAction.textContent = "自动编排检测到高风险问题，请先在校验页重写并复检。";
+                    activateTab("tab-writing-validate");
+                }
+            } catch (error) {
+                workflowQuickStatus.textContent = `编排失败：${error.message}`;
+            }
+        });
+
+        document.getElementById("workflow-resume-btn").addEventListener("click", async () => {
+            if (!workflowSessionId || !workflowNeedsRevision) {
+                validateNextAction.textContent = "当前没有待修订的编排会话。";
+                return;
+            }
+            const revisedText = lastValidationText;
+            if (!revisedText || revisedText.length < 20) {
+                validateNextAction.textContent = "请先执行校验获取段落后再继续编排。";
+                return;
+            }
+            try {
+                const data = await requestJson(`/api/workflows/${workflowSessionId}/resume`, {
+                    method: "POST",
+                    body: JSON.stringify({ overrides: { revised_draft: revisedText } }),
+                });
+                workflowNeedsRevision = data.status === "needs_revision";
+                const summary = data.result && data.result.mentor_summary ? data.result.mentor_summary : "继续编排完成。";
+                workflowQuickStatus.textContent = `会话 ${workflowSessionId}：${data.status} | ${summary}`;
+                renderWorkflowSession(data);
+                startWorkflowPolling(workflowSessionId);
+                if (!workflowNeedsRevision) {
+                    validateNextAction.textContent = "编排已继续并完成，可执行导出。";
+                    updateMainline("高风险已处理，可导出");
+                } else {
+                    validateNextAction.textContent = "仍存在高风险问题，请继续重写并复检。";
+                }
+            } catch (error) {
+                validateNextAction.textContent = `继续编排失败：${error.message}`;
+            }
+        });
+
+        document.getElementById("workflow-quick-export-btn").addEventListener("click", async () => {
+            if (!workflowSessionId) {
+                workflowQuickStatus.textContent = "请先运行一次自动编排。";
+                return;
+            }
+            try {
+                const data = await requestJson(`/api/workflows/${workflowSessionId}/export`, { method: "POST" });
+                workflowQuickStatus.textContent = `导出完成：${data.paragraph_path}`;
+                workflowNeedsRevision = false;
+                clearWorkflowPoll();
+            } catch (error) {
+                workflowQuickStatus.textContent = `导出失败：${error.message}`;
+            }
+        });
+
+        document.getElementById("ask-btn").addEventListener("click", async () => {
+            const question = document.getElementById("question").value.trim();
+            const output = document.getElementById("chat-output");
+            const sources = document.getElementById("chat-sources");
+            const excerpts = document.getElementById("chat-excerpts");
+            if (!question) {
+                output.textContent = "先输入一个问题。";
+                sources.textContent = "";
+                excerpts.innerHTML = "";
+                renderReliability(chatReliability, null, "问答");
+                return;
+            }
+            setLoadingState(output, "正在生成回答...");
+            sources.textContent = "";
+            excerpts.innerHTML = "";
+            try {
+                const data = await requestJson("/api/chat", { method: "POST", body: JSON.stringify({ question }) });
+                clearLoadingState(output, data.answer);
+                sources.textContent = data.sources.length ? `来源：${data.sources.join("、")}` : "来源：当前没有检索到已索引文献。";
+                if (data.retrieval_source) {
+                    sources.textContent = `${sources.textContent} | 检索来源：${data.retrieval_source}`;
+                }
+                const hint = userHintFromError(data);
+                if (hint) {
+                    sources.textContent = `${sources.textContent} | ${hint}`;
+                }
+                renderReliability(chatReliability, data, "问答");
+                excerpts.innerHTML = data.excerpts && data.excerpts.length
+                    ? data.excerpts.map(item => {
+                        const trace = [item.page ? `p.${item.page}` : "", item.chunk_id || ""].filter(Boolean).join(" | ");
+                        return `<div class="excerpt-card"><strong>${item.source}</strong><p>${item.text}</p><p>${trace ? `追溯：${trace}` : ""}</p></div>`;
+                    }).join("")
+                    : '<div class="excerpt-card"><p>当前没有可展示的命中文献片段。</p></div>';
+                updateMainline("问答完成，可带入写作");
+            } catch (error) {
+                clearLoadingState(output, `回答失败：${error.message}`);
+                excerpts.innerHTML = "";
+                renderReliability(chatReliability, { error_code: "REQUEST_FAILED", error_hint: error.message, retryable: true, degraded: true }, "问答");
+            }
+        });
+
+        document.getElementById("reasoning-compare-btn").addEventListener("click", async () => {
+            const question = document.getElementById("reasoning-question").value.trim();
+            const methodA = document.getElementById("reasoning-method-a").value.trim();
+            const methodB = document.getElementById("reasoning-method-b").value.trim();
+            if (!question || !methodA || !methodB) {
+                reasoningCompareOutput.textContent = "请先填写对比问题和方法 A/B。";
+                renderReliability(reasoningCompareReliability, null, "方法对比");
+                return;
+            }
+            setLoadingState(reasoningCompareOutput, "正在执行结构化方法对比...");
+            reasoningCompareMeta.textContent = "";
+            reasoningCompareEvidence.innerHTML = "";
+            lastReasoningPayload = null;
+            try {
+                const data = await requestJson("/api/reasoning/method-compare", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        question,
+                        method_a: methodA,
+                        method_b: methodB,
+                        reference_documents: selectedDocumentScope(),
+                    }),
+                });
+                const claims = (data.supported_claims || []).map((item) => `- ${item.text}`).join("\n");
+                const issues = (data.validation_issues || []).map((item) => `- [${item.severity}] ${item.message}`).join("\n");
+                const uncertainties = (data.uncertainties || []).map((item) => `- ${item}`).join("\n");
+                clearLoadingState(
+                    reasoningCompareOutput,
+                    `${data.summary}\n\n支持结论：\n${claims || "- 暂无"}\n\n校验问题：\n${issues || "- 无"}\n\n不确定项：\n${uncertainties || "- 无"}`
+                );
+                reasoningCompareMeta.textContent = `状态：${data.status} | 检索来源：${data.retrieval_source || "none"} | 证据数：${(data.retrieve_evidence || []).length}`;
+                reasoningCompareEvidence.innerHTML = (data.retrieve_evidence || []).length
+                    ? data.retrieve_evidence.map((item) => {
+                        const trace = [item.page ? `p.${item.page}` : "", item.chunk_id || "", item.evidence_id || ""].filter(Boolean).join(" | ");
+                        return `<div class="excerpt-card"><strong>${item.source}</strong><p>${item.snippet}</p><p>${trace ? `追溯：${trace}` : ""}</p></div>`;
+                    }).join("")
+                    : '<div class="excerpt-card"><p>当前没有命中足够证据，建议补充文献后重试。</p></div>';
+                renderReliability(reasoningCompareReliability, data, "方法对比");
+                lastReasoningPayload = data;
+                updateMainline("方法对比已完成");
+            } catch (error) {
+                clearLoadingState(reasoningCompareOutput, `方法对比失败：${error.message}`);
+                renderReliability(
+                    reasoningCompareReliability,
+                    { error_code: "REQUEST_FAILED", error_hint: error.message, retryable: true, degraded: true },
+                    "方法对比"
+                );
+            }
+        });
+
+        reasoningToWritingButton.addEventListener("click", () => {
+            if (!lastReasoningPayload) {
+                reasoningCompareOutput.textContent = "请先完成一次方法对比，再带入写作帮助。";
+                return;
+            }
+            const methodA = document.getElementById("reasoning-method-a").value.trim();
+            const methodB = document.getElementById("reasoning-method-b").value.trim();
+            const question = document.getElementById("reasoning-question").value.trim();
+            const evidence = (lastReasoningPayload.retrieve_evidence || []).slice(0, 3);
+            const refMarks = evidence.map((_, idx) => `[${idx + 1}]`).join(" ");
+            const evidenceLines = evidence.map((item, idx) => {
+                const trace = [item.source || "", item.page ? `p.${item.page}` : "", item.chunk_id || ""]
+                    .filter(Boolean)
+                    .join(" | ");
+                return `[${idx + 1}] ${trace || "evidence"}`;
+            });
+            const writingQuestion = document.getElementById("writing-question");
+            writingQuestion.value = [
+                question,
+                `请基于对比结果整理方法与实验段落，重点比较 ${methodA} 与 ${methodB} 的证据、指标和局限性。`,
+                refMarks ? `写作时请保留引用标记：${refMarks}` : "",
+                evidenceLines.length ? `证据索引：\n${evidenceLines.join("\n")}` : "",
+            ].filter(Boolean).join("\n");
+            activateTab("tab-writing-help");
+            updateMainline("已从方法对比带入写作");
+        });
+
+        reasoningToValidateButton.addEventListener("click", () => {
+            if (!lastReasoningPayload) {
+                reasoningCompareOutput.textContent = "请先完成一次方法对比，再带入论文校验。";
+                return;
+            }
+            const supported = (lastReasoningPayload.supported_claims || []).map((item) => item.text).filter(Boolean);
+            const uncertainties = (lastReasoningPayload.uncertainties || []).filter(Boolean);
+            const evidence = (lastReasoningPayload.retrieve_evidence || []).slice(0, 3);
+            const evidenceLines = evidence.map((item, idx) => {
+                const trace = [item.source || "", item.page ? `p.${item.page}` : "", item.chunk_id || ""]
+                    .filter(Boolean)
+                    .join(" | ");
+                return `[${idx + 1}] ${trace || "evidence"}`;
+            });
+            const draft = [
+                "基于当前文献证据的结构化方法对比如下。",
+                ...supported.map((text, idx) => `${idx + 1}. ${text} [${Math.min(idx + 1, Math.max(evidence.length, 1))}]`),
+                uncertainties.length ? `不确定项：${uncertainties.join("；")}` : "",
+                evidenceLines.length ? `证据索引：\n${evidenceLines.join("\n")}` : "",
+            ].filter(Boolean).join("\n");
+            lastValidationText = draft;
+            activateTab("tab-writing-validate");
+            updateMainline("已从方法对比带入校验");
+        });
+
+        reasoningGenerateDraftButton.addEventListener("click", async () => {
+            if (!lastReasoningPayload) {
+                reasoningCompareOutput.textContent = "请先完成一次方法对比，再生成方法段落草稿。";
+                return;
+            }
+            const methodA = document.getElementById("reasoning-method-a").value.trim();
+            const methodB = document.getElementById("reasoning-method-b").value.trim();
+            const question = document.getElementById("reasoning-question").value.trim();
+            const supported = (lastReasoningPayload.supported_claims || []).map((item) => item.text).filter(Boolean);
+            const uncertainties = (lastReasoningPayload.uncertainties || []).filter(Boolean);
+            const evidence = (lastReasoningPayload.retrieve_evidence || []).slice(0, 3);
+            const evidenceLines = evidence.map((item, idx) => {
+                const trace = [item.source || "", item.page ? `p.${item.page}` : "", item.chunk_id || ""]
+                    .filter(Boolean)
+                    .join(" | ");
+                return `[${idx + 1}] ${trace || "evidence"}`;
+            });
+            const baseDraft = [
+                `研究问题：${question || `${methodA} 与 ${methodB} 对比`}`,
+                `候选方法：${methodA || "Method A"} vs ${methodB || "Method B"}`,
+                "结构化对比结论：",
+                ...supported.map((text, idx) => `${idx + 1}. ${text} [${Math.min(idx + 1, Math.max(evidence.length, 1))}]`),
+                uncertainties.length ? `不确定项：${uncertainties.join("；")}` : "",
+                evidenceLines.length ? `证据索引：\n${evidenceLines.join("\n")}` : "",
+            ].filter(Boolean).join("\n");
+
+            const citationCheck = checkCitationCompleteness(baseDraft, evidenceLines);
+            if (!citationCheck.ok) {
+                reasoningCompareOutput.textContent = [
+                    "草稿生成前检查未通过：",
+                    ...citationCheck.issues.map((item, idx) => `${idx + 1}. ${item}`),
+                    "",
+                    "建议：先补充证据后再生成草稿。",
+                ].join("\n");
+                renderReliability(
+                    reasoningCompareReliability,
+                    {
+                        error_code: "CITATION_PRECHECK_FAILED",
+                        error_hint: citationCheck.issues.join("；"),
+                        retryable: true,
+                        degraded: true,
+                    },
+                    "方法草稿生成"
+                );
+                return;
+            }
+
+            setButtonState(reasoningGenerateDraftButton, true, "生成中...", "生成方法段落草稿");
+            try {
+                const rewriteData = await requestJson("/api/writing/rewrite", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        section: "method",
+                        text: baseDraft,
+                        focus: `将 ${methodA || "方法A"} 与 ${methodB || "方法B"} 的对比结果改写成可投稿方法段落，保留证据引用标记。`,
+                    }),
+                });
+                const rewritten = (rewriteData.rewritten_text || "").trim() || baseDraft;
+                lastValidationText = rewritten;
+                validateNextAction.textContent = "已基于方法对比生成草稿，建议先执行论文校验。";
+                renderReliability(reasoningCompareReliability, rewriteData, "方法草稿生成");
+                activateTab("tab-writing-validate");
+                updateMainline("已生成方法段落草稿并带入校验");
+            } catch (error) {
+                reasoningCompareOutput.textContent = `草稿生成失败：${error.message}`;
+                renderReliability(
+                    reasoningCompareReliability,
+                    { error_code: "REQUEST_FAILED", error_hint: error.message, retryable: true, degraded: true },
+                    "方法草稿生成"
+                );
+            } finally {
+                setButtonState(reasoningGenerateDraftButton, false, "生成中...", "生成方法段落草稿");
+            }
+        });
+
+        document.getElementById("diagram-btn").addEventListener("click", async () => {
+            const prompt = document.getElementById("diagram-prompt").value.trim();
+            const output = document.getElementById("diagram-output");
+            const image = document.getElementById("diagram-image");
+            if (!prompt) {
+                output.textContent = "先描述一下你想画的流程。";
+                image.hidden = true;
+                diagramPlaceholder.hidden = false;
+                downloadDiagramButton.hidden = true;
+                diagramNote.textContent = "请先输入一段流程描述。";
+                diagramStageMeta.textContent = "等待生成图像信号";
+                renderReliability(diagramReliability, null, "流程图");
+                return;
+            }
+            setLoadingState(output, "正在生成流程图...");
+            lastDiagramPrompt = prompt;
+            image.hidden = true;
+            diagramPlaceholder.hidden = false;
+            downloadDiagramButton.hidden = true;
+            diagramNote.textContent = "系统正在判断是走知识库绘图，还是走通用绘图模式...";
+            diagramStageMeta.textContent = "正在构建轨道图像";
+            try {
+                const options = getGenerationOptions("diagram");
+                const data = await requestJson("/api/diagram", {
+                    method: "POST",
+                    body: JSON.stringify({ prompt, feedback: pendingDiagramFeedback, ...options })
+                });
+                saveLastOptions("diagram", options);
+                clearLoadingState(output, data.mermaid_code);
+                if (data.image_url) {
+                    image.src = data.image_url + `?t=${Date.now()}`;
+                    image.hidden = false;
+                    diagramPlaceholder.hidden = true;
+                    downloadDiagramButton.href = data.image_url;
+                    downloadDiagramButton.hidden = false;
+                    diagramNote.textContent = "已生成 Mermaid 和 PNG 预览，你可以直接复制或下载。";
+                    diagramStageMeta.textContent = "PNG 预览已捕获";
+                } else {
+                    diagramNote.textContent = "已生成 Mermaid 代码，但当前环境没有产出 PNG 预览。你仍然可以复制代码继续使用。";
+                    diagramStageMeta.textContent = "仅返回结构代码";
+                }
+                const hint = userHintFromError(data);
+                if (hint) diagramNote.textContent = `${diagramNote.textContent} ${hint}`;
+                renderReliability(diagramReliability, data, "流程图");
+                pendingDiagramFeedback = [];
+            } catch (error) {
+                clearLoadingState(output, `生成失败：${error.message}`);
+                diagramNote.textContent = "流程图生成失败，请稍后重试或换一种更明确的描述。";
+                diagramStageMeta.textContent = "图像通道暂时中断";
+                renderReliability(diagramReliability, { error_code: "REQUEST_FAILED", error_hint: error.message, retryable: true, degraded: true }, "流程图");
+            }
+        });
+
+        copyDiagramButton.addEventListener("click", async () => {
+            const diagramCode = document.getElementById("diagram-output").textContent.trim();
+            if (!diagramCode || diagramCode === "等待生成..." || diagramCode.startsWith("生成失败")) {
+                diagramNote.textContent = "当前还没有可复制的 Mermaid 代码。";
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(diagramCode);
+                diagramNote.textContent = "Mermaid 代码已复制到剪贴板。";
+            } catch (error) {
+                diagramNote.textContent = "复制失败，请手动选中代码复制。";
+            }
+        });
+
+        document.getElementById("figure-btn").addEventListener("click", async () => {
+            const prompt = document.getElementById("figure-prompt").value.trim();
+            if (!prompt) {
+                figureOutput.textContent = "先描述一下你想生成的论文配图。";
+                figureImage.hidden = true;
+                figurePlaceholder.hidden = false;
+                figureSources.textContent = "";
+                figureNote.textContent = "请先输入一段明确的配图需求。";
+                figureStageMeta.textContent = "等待生成配图信号";
+                renderReliability(figureReliability, null, "配图");
+                return;
+            }
+
+            setLoadingState(figureOutput, "正在生成论文配图...");
+            lastFigurePrompt = prompt;
+            figureImage.hidden = true;
+            figurePlaceholder.hidden = false;
+            figureSources.textContent = "";
+            figureNote.textContent = "系统正在判断是基于上传论文出图，还是按通用主题生成。";
+            figureStageMeta.textContent = "正在构建配图布局";
+
+            try {
+                const options = getGenerationOptions("figure");
+                const data = await requestJson("/api/figure", {
+                    method: "POST",
+                    body: JSON.stringify({ prompt, feedback: pendingFigureFeedback, ...options })
+                });
+                saveLastOptions("figure", options);
+                clearLoadingState(figureOutput, `${data.title}\n${data.caption}`);
+                figureSources.textContent = data.sources && data.sources.length ? `来源：${data.sources.join("、")}` : "来源：通用知识生成";
+                if (data.image_url) {
+                    figureImage.src = data.image_url + `?t=${Date.now()}`;
+                    figureImage.hidden = false;
+                    figurePlaceholder.hidden = true;
+                }
+                figureNote.textContent = `图类型：${data.figure_type}。这是一张可继续微调的论文插图初稿。`;
+                figureStageMeta.textContent = "配图已生成";
+                const hint = userHintFromError(data);
+                if (hint) figureNote.textContent = `${figureNote.textContent} ${hint}`;
+                renderReliability(figureReliability, data, "配图");
+                pendingFigureFeedback = [];
+            } catch (error) {
+                clearLoadingState(figureOutput, `生成失败：${error.message}`);
+                figureNote.textContent = "论文配图生成失败，请换一种更明确的图类型描述再试。";
+                figureStageMeta.textContent = "配图通道暂时中断";
+                renderReliability(figureReliability, { error_code: "REQUEST_FAILED", error_hint: error.message, retryable: true, degraded: true }, "配图");
+            }
+        });
+
+        reuseLastOptionsButton.addEventListener("click", () => {
+            applyLastOptions();
+        });
+
+        feedbackButtons.forEach((button) => {
+            button.addEventListener("click", async () => {
+                const target = button.dataset.target;
+                const feedback = button.dataset.feedback;
+                if (!feedback) return;
+                if (target === "diagram") {
+                    if (!lastDiagramPrompt) {
+                        diagramNote.textContent = "请先生成一次流程图，再进行定向修正。";
+                        return;
+                    }
+                    pendingDiagramFeedback = [feedback];
+                    document.getElementById("diagram-btn").click();
+                    return;
+                }
+                if (!lastFigurePrompt) {
+                    figureNote.textContent = "请先生成一次配图，再进行定向修正。";
+                    return;
+                }
+                pendingFigureFeedback = [feedback];
+                document.getElementById("figure-btn").click();
+            });
+        });
+
+        loadFigureTemplates();
+        loadDocumentScope();
+        refreshStatus();
+        refreshDocuments();
+    </script>
+</body>
+</html>
