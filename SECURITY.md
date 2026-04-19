@@ -1,39 +1,41 @@
-# Security Policy
+# 安全策略
 
-## Supported Versions
+**语言 / Languages：** 简体中文 | [English](SECURITY.en.md)
 
-This project is currently in active development. Security fixes are applied on the latest `main` branch first.
+## 受支持版本
 
-## Reporting a Vulnerability
+项目处于活跃开发阶段。安全修复优先合入最新的 `main` 分支。
 
-Please do not open public GitHub issues for security reports.
+## 漏洞报告
 
-Report privately with:
+请勿就安全问题公开创建 GitHub Issue。
 
-- Vulnerability description
-- Impact and affected components
-- Reproduction steps or proof-of-concept
-- Suggested remediation (if available)
+请通过私密渠道报告，并尽量包含：
 
-Use one of these private channels:
+- 漏洞描述  
+- 影响范围与受影响组件  
+- 复现步骤或概念验证（PoC）  
+- 可选的修复建议  
 
-- GitHub Security Advisories (preferred)
-- Maintainer email listed in repository metadata
+推荐渠道：
 
-We aim to acknowledge reports within 3 business days and provide a status update within 7 business days.
+- GitHub Security Advisories（首选）  
+- 仓库元数据中列出的维护者邮箱  
 
-## Scope and Priorities
+我们会在 **3 个工作日内** 确认收到，并争取在 **7 个工作日内** 给出进展说明。
 
-Highest priority:
+## 范围与优先级
 
-- Secret leakage or credential exposure
-- Authentication bypass (`API_ACCESS_KEY` paths)
-- Arbitrary file write/read through upload or export paths
-- Unsafe command execution in generation/rendering pipeline
+高优先级包括：
 
-## Secure Development Notes
+- 密钥或凭据泄露  
+- 认证绕过（涉及 `API_ACCESS_KEY` 的路径）  
+- 通过上传或导出实现的任意文件读写  
+- 生成/渲染链路中的不安全命令执行  
 
-- Never commit runtime secrets (`backend/.env`, keys, tokens).
-- Keep provider API credentials in environment variables only.
-- Validate and sanitize external inputs, especially file uploads.
-- Use dependency pinning where practical and review upgrades.
+## 安全开发提示
+
+- 切勿将运行时密钥提交到仓库（`backend/.env`、各类 key/token）。  
+- 第三方 API 凭据仅放在环境变量中。  
+- 校验与清洗外部输入，尤其是文件上传。  
+- 在可行范围内锁定依赖版本，并在升级时做安全审阅。  

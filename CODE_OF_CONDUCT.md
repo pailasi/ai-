@@ -1,39 +1,41 @@
-# Code of Conduct
+# 社区行为准则
 
-## Our Commitment
+**语言 / Languages：** 简体中文 | [English](CODE_OF_CONDUCT.en.md)
 
-We are committed to making participation in this project a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
+## 我们的承诺
 
-## Our Standards
+我们致力于为每一位参与者营造无骚扰的开放环境，无论其年龄、体型、残障、族裔、生理特征、性别认同与表达、经验水平、教育程度、社会经济地位、国籍、外貌、种族、宗教或性取向。
 
-Examples of behavior that contributes to a positive environment:
+## 我们的标准
 
-- Showing empathy and respect
-- Giving and accepting constructive feedback
-- Focusing on what is best for the community
-- Taking responsibility for mistakes and learning from them
+有助于积极氛围的行为示例：
 
-Examples of unacceptable behavior:
+- 展现同理心与尊重  
+- 给予并接受建设性反馈  
+- 以社区整体利益为重  
+- 主动承担责任并从错误中学习  
 
-- Harassment, intimidation, or discrimination
-- Trolling, insulting, or derogatory comments
-- Personal or political attacks
-- Publishing private information without permission
+不可接受的行为示例：
 
-## Enforcement Responsibilities
+- 骚扰、恐吓或歧视  
+- 恶意挑衅、侮辱或贬低性言论  
+- 人身或政治攻击  
+- 未经许可公开他人隐私信息  
 
-Project maintainers are responsible for clarifying and enforcing acceptable behavior and may take appropriate action in response to behavior they deem inappropriate, threatening, offensive, or harmful.
+## 执行责任
 
-## Scope
+维护者负责阐明并执行本准则，并可对被认为不当、威胁、冒犯或有害的行为采取适当措施。
 
-This Code of Conduct applies in all project spaces, including issues, pull requests, discussions, and any other public or private communication channels related to the project.
+## 适用范围
 
-## Reporting
+本准则适用于本项目的全部空间，包括 Issues、Pull Requests、Discussions，以及与本项目相关的其他公开或私密沟通渠道。
 
-To report unacceptable behavior, contact project maintainers through private channels listed in the repository.
+## 举报不当行为
 
-All reports will be reviewed and investigated promptly and fairly.
+若遇不当行为，请通过仓库说明中的私密渠道联系维护者。
 
-## Attribution
+我们会及时、公正地受理并调查所有举报。
 
-This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org), version 2.1.
+## 出处
+
+本行为准则改编自 [Contributor Covenant](https://www.contributor-covenant.org) 2.1 版。

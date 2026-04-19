@@ -1,27 +1,28 @@
 ﻿# Sci-Copilot
 
-Sci-Copilot is a research assistant prototype that combines four practical workflows in one local app:
+**语言 / Languages：** 简体中文 | [English](README.en.md)
 
-- Upload PDF papers into a local workspace
-- Build a searchable knowledge base from those papers
-- Ask grounded questions against indexed content
-- Generate Mermaid-based research diagrams, with optional PNG preview
+Sci-Copilot 是一款科研助手原型，在单一本地应用中整合四类常用能力：
 
-The project now uses a single canonical entrypoint: FastAPI serves both the API and the web UI.
+- 将 PDF 论文上传到本地工作区  
+- 基于文献构建可检索的知识库  
+- 针对已索引内容提出有依据的问题  
+- 生成基于 Mermaid 的研究示意图，并可选用 PNG 预览  
 
-## Current Architecture
+项目采用单一入口：由 FastAPI 同时提供 API 与 Web 前端静态资源。
 
-- Backend: FastAPI app factory + modular route package (`backend/api`)
-- Frontend: static HTML/CSS/JavaScript served by FastAPI
-- Retrieval mode: semantic vector retrieval (Chroma) with keyword fallback
-- PDF extraction: PyMuPDF
-- Text chunking: `langchain-text-splitters`
-- Text providers: Codex/OpenAI-compatible, Google GenAI, OpenRouter fallback
-- Figure providers: IMG primary, then Codex/OpenAI-compatible, then GLM fallback
-- Optional diagram rendering: Mermaid CLI (`mmdc`)
+## 当前架构
 
+- 后端：FastAPI 应用工厂 + 模块化路由包（`backend/api`）
+- 前端：由 FastAPI 托管的静态 HTML/CSS/JavaScript
+- 检索：语义向量检索（Chroma），并有关键词降级
+- PDF：`PyMuPDF`
+- 分块：`langchain-text-splitters`
+- 文本模型：Codex（OpenAI 兼容）、Google GenAI、OpenRouter 降级
+- 配图模型：IMG 优先，其次 Codex（OpenAI 兼容），再次 GLM 降级
+- 图示渲染（可选）：Mermaid CLI（`mmdc`）
 
-## Project Layout
+## 项目目录
 
 ```text
 Sci-Copilot/
@@ -47,13 +48,13 @@ Sci-Copilot/
 ├─ start.sh
 ├─ Dockerfile
 ├─ docker-compose.yml
-└─ README.md
+├─ README.md
+└─ README.en.md
 ```
 
-Runtime/local-only directories live under `backend/` as needed, including `data/`, `diagrams/`, `chroma_db/`, and local virtual environments. They are not part of the source module layout.
+运行时或仅本地的目录按需出现在 `backend/` 下，例如 `data/`、`diagrams/`、`chroma_db/`、本地虚拟环境；它们不属于源码模块树的一部分。
 
-
-## Quick Start
+## 快速开始
 
 ### Windows
 
@@ -68,9 +69,9 @@ chmod +x start.sh
 ./start.sh
 ```
 
-Then open [http://localhost:8000](http://localhost:8000).
+然后在浏览器打开 [http://localhost:8000](http://localhost:8000)。
 
-## Manual Run
+## 手动运行
 
 ```bash
 cd backend
@@ -81,9 +82,9 @@ cp .env.example .env      # Windows: copy .env.example .env
 python main.py
 ```
 
-## Environment
+## 环境变量
 
-Configure `backend/.env` as needed:
+按需配置 `backend/.env`：
 
 ```env
 APP_ENV=development
@@ -125,20 +126,20 @@ ENABLE_VECTOR_STORE=true
 EMBEDDINGS_MODEL=all-MiniLM-L6-v2
 ```
 
-Recommended routing:
+推荐路由策略：
 
-- Text tasks (`/api/chat`, mentor dispatch/review, rewrite, diagram text generation): Codex primary when configured, otherwise Google with OpenRouter fallback
-- Figure generation (`/api/figure`): IMG primary, then Codex/OpenAI-compatible, then GLM fallback
+- 文本类（`/api/chat`、导师编排与评审、改写、示意图文案等）：已配置 Codex 时优先 Codex，否则 Google，再 OpenRouter 降级  
+- 配图（`/api/figure`）：IMG 优先，其次 Codex（OpenAI 兼容），再 GLM  
 
-Global routing policy knobs:
+全局可调参数：
 
-- `TEXT_PROVIDER_ORDER`: comma-separated text provider sequence
-- `FIGURE_PROVIDER_ORDER`: comma-separated figure provider sequence
-- `TEXT_MODEL_MAP`: JSON provider->model override map
-- `FIGURE_MODEL_MAP`: JSON provider->model override map
-- `DISABLE_PROVIDERS`: comma-separated provider IDs to temporarily disable
+- `TEXT_PROVIDER_ORDER`：文本提供方顺序（逗号分隔）
+- `FIGURE_PROVIDER_ORDER`：配图提供方顺序（逗号分隔）
+- `TEXT_MODEL_MAP`：JSON，`provider -> model` 覆盖
+- `FIGURE_MODEL_MAP`：JSON，`provider -> model` 覆盖
+- `DISABLE_PROVIDERS`：暂时禁用的 provider ID（逗号分隔）
 
-Example:
+示例：
 
 ```env
 TEXT_PROVIDER_ORDER=openrouter,google,codex
@@ -148,16 +149,15 @@ FIGURE_MODEL_MAP={"img":"gemini-2.5-flash-image-preview","glm":"cogview-3-plus"}
 DISABLE_PROVIDERS=codex
 ```
 
-If the external providers are unavailable, text and figure endpoints still fall back to degraded local behavior where supported:
+外部模型不可用时，文本与配图接口在支持的前提下仍会降级：
 
-- Chat returns a clear fallback message
-- Diagram generation returns a fallback Mermaid template
-- Figure generation returns a fallback SVG/placeholder result when the image provider chain is unavailable
+- 对话返回明确的降级说明  
+- 示意图生成返回备用 Mermaid 模板  
+- 配图在整条链路失败时返回备用 SVG/占位结果  
 
-If `API_ACCESS_KEY` is set, all `/api/*` routes require `X-API-Key` with the same value.
+若设置了 `API_ACCESS_KEY`，所有 `/api/*` 须在请求头携带 `X-API-Key`，值与之相同。
 
-
-## API Endpoints
+## API 端点
 
 - `GET /`
 - `GET /health`
@@ -178,20 +178,20 @@ If `API_ACCESS_KEY` is set, all `/api/*` routes require `X-API-Key` with the sam
 - `POST /api/workflows/{session_id}/resume`
 - `POST /api/workflows/{session_id}/export`
 
-Interactive docs are available at [http://localhost:8000/docs](http://localhost:8000/docs).
+交互式文档：[http://localhost:8000/docs](http://localhost:8000/docs)。
 
-## Generation Parameters (MVP)
+## 生成参数（MVP）
 
-`/api/diagram` and `/api/figure` now support optional advanced parameters:
+`/api/diagram` 与 `/api/figure` 支持可选进阶参数：
 
-- `style`: `academic` | `minimal` | `presentation`
-- `detail_level`: `low` | `medium` | `high`
-- `language`: `zh` | `en`
-- `width`: optional image width (`512-2400`)
-- `height`: optional image height (`512-2400`)
-- `feedback`: optional regeneration hint list (`layout` / `elements` / `text` / `style`)
+- `style`：`academic` | `minimal` | `presentation`
+- `detail_level`：`low` | `medium` | `high`
+- `language`：`zh` | `en`
+- `width`：图片宽度（`512–2400`）
+- `height`：图片高度（`512–2400`）
+- `feedback`：再次生成时的提示维度（`layout` / `elements` / `text` / `style`）
 
-Example:
+示例：
 
 ```json
 {
@@ -204,22 +204,18 @@ Example:
 }
 ```
 
-If advanced parameters are not provided, existing behavior remains compatible.
+未提供进阶参数时行为与先前版本兼容。
 
-Both endpoints now return structured reliability fields:
-- `error_code`
-- `error_hint`
-- `retryable`
-- `degraded`
-- `model_provider`
-- `model_name`
-- `fallback_chain`
+两接口响应均包含结构化可靠性字段：
 
-## Writing Assist and Manuscript Check
+- `error_code`、`error_hint`、`retryable`、`degraded`
+- `model_provider`、`model_name`、`fallback_chain`
+
+## 写作辅助与稿件校验
 
 ### `POST /api/writing/help`
 
-Request:
+请求示例：
 
 ```json
 {
@@ -230,15 +226,11 @@ Request:
 }
 ```
 
-Response includes:
-- `recommendation`: structured writing direction (MVP template + evidence aware)
-- `evidence`: source snippets with trace fields (`source`, `page`, `chunk_id`)
-- `draft_template`: reusable paragraph template
-- `risk_notes`: writing risks to avoid
+响应包含：`recommendation`（写作方向）、带溯源的 `evidence`（`source`、`page`、`chunk_id`）、`draft_template`、`risk_notes`。
 
 ### `POST /api/writing/validate`
 
-Request:
+请求示例：
 
 ```json
 {
@@ -247,37 +239,29 @@ Request:
 }
 ```
 
-Response includes:
-- `summary`
-- `issues[]` with `category`, `severity`, `suggestion`, and `rewrite_example`
+响应包含：`summary`，以及 `issues[]`（`category`、`severity`、`suggestion`、`rewrite_example`）。
 
 ### `POST /api/writing/rewrite`
 
-Use this endpoint to rewrite a paragraph with model-driven style polishing and actionable notes.
+用于段落润色改写，并附带可操作的修改说明。
 
-### Figure Templates
+### 配图模板
 
-Use `GET /api/figure/templates` to fetch supported template IDs:
-- `method_framework`
-- `experiment_flow`
-- `comparison`
-- `ablation`
+`GET /api/figure/templates` 获取模板 ID，例如：`method_framework`、`experiment_flow`、`comparison`、`ablation`。
 
-## Workflow Mode (Beta)
+## 工作流模式（Beta）
 
-Sci-Copilot now provides a built-in workflow:
-`question_to_submission_paragraph`
+内置工作流 ID：`question_to_submission_paragraph`。步骤包括：
 
-This workflow chains:
-1. Mentor dispatch (导师AI编排任务)
-2. Analysis agent (论文分析与证据提取)
-3. Writer agent (段落撰写)
-4. Manuscript validation
-5. Figure agent (科研配图)
-6. Citation agent (证据清单)
-7. Mentor review (导师AI最终评审)
+1. 导师编排（导师 AI 编排任务）
+2. 分析智能体（论文分析与证据提取）
+3. 撰稿智能体（段落撰写）
+4. 稿件校验
+5. 配图智能体（科研配图）
+6. 引用智能体（证据清单）
+7. 导师终审（导师 AI 最终评审）
 
-Example run request:
+触发示例：
 
 ```json
 {
@@ -289,12 +273,9 @@ Example run request:
 }
 ```
 
-This orchestration runs automatically after `run`, with no manual step required.
-Mentor AI uses an internal prompt-tuned model interface (configure `MENTOR_MODEL` in `backend/.env`; falls back to `ANALYSIS_MODEL`).
-Frontend now provides a lightweight entry in the left workspace panel: **自动编排（Beta）** (`一键编排` / `导出编排`).
+`run` 之后编排自动执行，无需手动逐步点击。导师模型在 `backend/.env` 中配置 `MENTOR_MODEL`，缺省回落到 `ANALYSIS_MODEL`。前端左侧工作区提供轻量入口：**自动编排（Beta）**（一键编排 / 导出编排）。
 
-When workflow status is `needs_revision`, you must revise and re-validate high-risk issues before export.
-`POST /api/workflows/{session_id}/resume` accepts:
+状态为 `needs_revision` 时，需修改正文并消除高风险校验项后再导出。`POST /api/workflows/{session_id}/resume` 示例：
 
 ```json
 {
@@ -304,77 +285,39 @@ When workflow status is `needs_revision`, you must revise and re-validate high-r
 }
 ```
 
-Export now provides a three-piece package:
-- `paragraph_path`
-- `figure_caption_path`
-- `evidence_path`
+导出为三件套路径：`paragraph_path`、`figure_caption_path`、`evidence_path`。结果中还包含：`evidence_trace`、`step_trace`、`revision_history`。
 
-Workflow result now also includes:
-- `evidence_trace`: source/page/chunk trace list from analysis evidence
-- `step_trace`: normalized status of each workflow step
-- `revision_history`: revised draft history captured by resume actions
+## Mentor-Skill 编排约定
 
-## Mentor-Skill Governance
+固定技能链：`mentor_dispatch_skill` → `analysis_agent_skill` → `writer_agent_skill` → `manuscript_validate_skill` → `figure_agent_skill` → `citation_agent_skill` → `mentor_review_skill`。
 
-Workflow orchestration follows a fixed role chain:
+质量门禁：高风险校验问题会导致 `needs_revision`；必须通过 `resume` 提交修订稿；仅当会话状态为 `completed` 时才允许导出。人机协同：降级运行（模型/配图回退）时请在提交前人工核对术语与配图说明一致性。
 
-1. `mentor_dispatch_skill`: mentor dispatch + execution constraints
-2. `analysis_agent_skill`: evidence retrieval and recommendation
-3. `writer_agent_skill`: paragraph rewrite
-4. `manuscript_validate_skill`: structured risk check
-5. `figure_agent_skill`: figure generation (degrade-safe fallback supported)
-6. `citation_agent_skill`: citation pack construction
-7. `mentor_review_skill`: final mentor review and go-next decision
+## 示意图 / 配图故障排查
 
-Quality gates:
-- High-risk validation issues force `needs_revision`
-- Resume requires revised draft via `POST /api/workflows/{session_id}/resume`
-- Export is allowed only when session status is `completed`
+- PNG 预览缺失：检查是否安装 Mermaid CLI（`mmdc`）。
+- 文本异常降级：核对 `GOOGLE_API_KEY`、`OPEN_API_KEY` 及模型名。
+- 配图失败：核对 `GLM_API_KEY`、`FIGURE_MODEL`、网络与代理。
+- `GET /api/status` 中 `generation_health.last_generation_error` 可看最近一次生成错误。
+- `GET /api/status` 还包含：`google_api_configured`、`open_api_configured`、`glm_api_configured`、`text_primary_provider`、`text_fallback_provider`、`retrieval_mode`、`vector_store_ready`、`knowledge_base_ready`、`last_retrieval_source`、`product_metrics`、`mentor_model`。
+- 响应中的 `error_code` 可作定位参考：`MODEL_TIMEOUT`、`MODEL_NOT_FOUND`、`TEXT_PROVIDER_UNAVAILABLE`、`FIGURE_PROVIDER_UNAVAILABLE`、`CONFIG_MISSING`、`NETWORK_ERROR`、`RENDERER_UNAVAILABLE`、`INSUFFICIENT_EVIDENCE`。
 
-Human-in-the-loop:
-- When `needs_revision` is returned, revise text first, then resume
-- In degraded runs (e.g., model/image fallback), manually review terminology and caption consistency before submission
+## 验收测试基线
 
-## Troubleshooting Diagram/Figure Generation
-
-- If PNG preview is missing for diagrams, check whether Mermaid CLI (`mmdc`) is installed.
-- If text generation degrades unexpectedly, verify `GOOGLE_API_KEY` / `OPEN_API_KEY` and model names.
-- If figure generation fails, verify `GLM_API_KEY`, `FIGURE_MODEL`, and network/proxy settings.
-- Check `GET /api/status` for `generation_health.last_generation_error` to inspect latest generation failures.
-- `GET /api/status` now includes:
-  - `google_api_configured` / `open_api_configured` / `glm_api_configured`
-  - `text_primary_provider` / `text_fallback_provider`
-  - `retrieval_mode` (`vector_semantic+keyword_fallback` by default)
-  - `vector_store_ready` (vector service availability)
-  - `knowledge_base_ready` (local indexed content readiness)
-  - `last_retrieval_source` (`vector` / `keyword` / `fallback` / `none`)
-  - `product_metrics` (chat/writing/diagram/figure request counters)
-  - `mentor_model` (mentor AI model route)
-- Check `error_code` in API response for actionable hints:
-  - `MODEL_TIMEOUT`
-  - `MODEL_NOT_FOUND`
-  - `TEXT_PROVIDER_UNAVAILABLE`
-  - `FIGURE_PROVIDER_UNAVAILABLE`
-  - `CONFIG_MISSING`
-  - `NETWORK_ERROR`
-  - `RENDERER_UNAVAILABLE`
-  - `INSUFFICIENT_EVIDENCE`
-
-## Acceptance Test Baseline
-
-Use the chat acceptance gate to validate core Q&A quality and reliability contract before release:
+发布前可用对话验收保障核心问答质量：
 
 ```bash
 cd backend
 python -m unittest test_chat_acceptance.py
 ```
 
-Modes:
-- Default (recommended CI gate): mocked deterministic provider, strict mode on.
-- Live check (optional): set `CHAT_ACCEPTANCE_LIVE=1` to hit real provider routes.
-- Soft report mode: set `CHAT_ACCEPTANCE_STRICT=0` to print issues without failing.
+模式说明：
 
-Example:
+- 默认（推荐 CI）：确定性 mock、严格模式。
+- 联机可选：设置 `CHAT_ACCEPTANCE_LIVE=1`。
+- 软报告：设置 `CHAT_ACCEPTANCE_STRICT=0`，仅打印问题不失败。
+
+示例：
 
 ```bash
 CHAT_ACCEPTANCE_LIVE=1 CHAT_ACCEPTANCE_STRICT=0 python -m unittest test_chat_acceptance.py
@@ -383,65 +326,55 @@ CHAT_ACCEPTANCE_LIVE=1 CHAT_ACCEPTANCE_STRICT=0 python -m unittest test_chat_acc
 ## Docker
 
 ```bash
-# Optional: create backend/.env from template for local secrets
-cp backend/.env.example backend/.env
+cp backend/.env.example backend/.env   # 可选：本地密钥
 docker compose up --build
 ```
 
-The container exposes the app at [http://localhost:8000](http://localhost:8000).
-`docker-compose.yml` now boots with safe defaults, and `.env` remains optional for first run.
+容器对外 [http://localhost:8000](http://localhost:8000)。`docker-compose.yml` 具备安全默认配置；首次运行可不强制 `.env`。
 
-## Notes
+## 说明
 
-- Runtime data is intentionally ignored from Git: uploaded PDFs, ChromaDB files, diagrams, and local secrets.
-- Mermaid PNG preview requires `mmdc` to be installed on the host or inside your runtime image.
-- Vector indexing depends on the embedding model being available to `sentence-transformers`.
+- PDF、ChromaDB、示意图与密钥等运行时数据不入库。
+- Mermaid PNG 预览依赖主机或镜像内安装的 `mmdc`。
+- 向量索引依赖 `sentence-transformers` 可用的嵌入模型。
 
-## Open-Source Scope
+## 开源范围
 
-This repository is open-sourced as an actively evolving research-assistant prototype.
+本仓库作为持续演进的科研助手原型开源。
 
-- **Supported scope**: local deployment, document ingestion, knowledge retrieval, chat/writing/diagram/figure APIs, workflow beta path.
-- **Out of scope**: production multi-tenant deployment, strict SLA guarantees, managed cloud hosting defaults.
-- **Issue reporting**: use GitHub Issues for bugs/feature requests; use private channels described in `SECURITY.md` for vulnerabilities.
-- **Contribution guide**: see `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`.
+- **涵盖**：本地部署、文档入库与检索、对话/写作/示意图/配图 API、Beta 工作流路径。
+- **不涵盖**：生产级多租户、严格 SLA、默认托管云形态。
+- **缺陷与需求**：GitHub Issues；**安全漏洞**：按 [`SECURITY.md`](SECURITY.md) 私密渠道报告。
+- **贡献与社区准则**：见 [`CONTRIBUTING.md`](CONTRIBUTING.md) 与 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)。
 
-### Known Limitations
+### 已知局限
 
-- Provider availability depends on third-party API quotas, model permissions, and network/proxy stability.
-- Some fallback paths are designed for continuity rather than best-quality generation output.
-- Dependency vulnerability remediation is in progress; see `docs/prepublish_security_report.md`.
+- 第三方 API 配额、模型权限与网络稳定性会影响可用性。
+- 部分降级路径优先考虑不断服，而非最优生成质量。
+- 依赖漏洞治理进行中，参见 `docs/prepublish_security_report.md`。
 
-### Versioning Strategy
+### 版本策略
 
-- Pre-1.0 releases follow `v0.x.y`.
-- `x` increments for feature waves or behavior shifts.
-- `y` increments for bug fixes, docs, and non-breaking maintenance.
-- Breaking API changes are documented in release notes and should target the next minor line.
+- 1.0 之前采用 `v0.x.y`。
+- `x`：功能里程碑或行为变更。
+- `y`：修复、文档与非破坏性维护。
+- 破坏性 API 变更记入发布说明并尽量落在下一个次版本线。
 
-## Launch Readiness Checklist
+## 上线前自检
 
-Before public trial release, ensure all items are green:
+- 安全：仓库无明文密钥；调试脚本仅读环境变量。
+- 稳定：`test_smoke.py`、`test_workflow_engine.py`、`test_chat_acceptance.py` 通过。
+- 可靠性体验：前端对对话/示意图/配图展示 `degraded`/`error_hint`。
+- 工作流可追溯：导出包含段落、配图说明、证据与步骤/修订痕迹。
+- 部署：`docker compose up --build` 可启动且 `/api/status` 核心字段正常。
 
-- Security: no plaintext API keys in repository; debug scripts read env vars only.
-- Stability: `test_smoke.py`, `test_workflow_engine.py`, and `test_chat_acceptance.py` pass.
-- Reliability UX: frontend clearly shows `degraded`/`error_hint` for chat/diagram/figure.
-- Workflow traceability: export includes paragraph + figure caption + evidence + step/revision trace.
-- Deployment: `docker compose up --build` starts app and `/api/status` returns healthy core fields.
+## 执行类文档
 
-## Execution Playbooks
+周计划与模板见：`docs/week1_stability_gates.md`、`docs/week2_workflow_ux_trace.md`、`docs/week3_beta_rollout.md`、`docs/reasoning_toolchain_min_design.md`、`docs/templates/beta_report_template.md`。
 
-Week-by-week execution assets are tracked in:
+## 路线图设想
 
-- `docs/week1_stability_gates.md`
-- `docs/week2_workflow_ux_trace.md`
-- `docs/week3_beta_rollout.md`
-- `docs/reasoning_toolchain_min_design.md`
-- `docs/templates/beta_report_template.md`
-
-## Roadmap Ideas
-
-- Add citations with chunk-level traceability in answers
-- Persist chat sessions and research workspaces
-- Add ingestion progress and document management UI
-- Introduce test automation in CI
+- 答案中引入 chunk 级可追溯引用  
+- 持久化对话会话与研究空间  
+- 入库进度与文档管理 UI  
+- CI 测试自动化  
