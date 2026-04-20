@@ -1,0 +1,32 @@
+{
+  "name": "Vibma",
+  "id": "1485687494525374295",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": [
+    "figma",
+    "figjam"
+  ],
+  "permissions": [],
+  "networkAccess": {
+    "allowedDomains": [
+      "ws://localhost:3055",
+      "ws://localhost:3056",
+      "ws://localhost:3057",
+      "ws://localhost:3058"
+    ],
+    "reasoning": "Connects to a local-only Vibma WebSocket relay. Ports 3055-3058 are allowed so users can avoid conflicts with other local services.",
+    "devAllowedDomains": [
+      "http://localhost:3055",
+      "ws://localhost:3055",
+      "http://localhost:3056",
+      "ws://localhost:3056",
+      "http://localhost:3057",
+      "ws://localhost:3057",
+      "http://localhost:3058",
+      "ws://localhost:3058"
+    ]
+  },
+  "documentAccess": "dynamic-page"
+}

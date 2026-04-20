@@ -6,7 +6,11 @@
       "Bash(xargs wc *)",
       "Bash(cat \"C:\\\\\\\\Users\\\\\\\\MR\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\D--Sci-Copilot\\\\\\\\e8717477-bbc5-40b9-81ab-1607820cd3a7\\\\\\\\tasks\\\\\\\\b0wbg2yqe.output\")",
       "Bash(python -m pytest test_smoke.py -v)",
-      "Bash(python -m unittest test_smoke -v)"
+      "Bash(python -m unittest test_smoke -v)",
+      "WebFetch(domain:aistudio.google.com)",
+      "WebFetch(domain:www.bilibili.com)",
+      "WebSearch",
+      "WebFetch(domain:api.bilibili.com)"
     ]
   }
 }
