@@ -10,6 +10,8 @@ Sci-Copilot is a research assistant prototype that combines four practical workf
 - Generate Mermaid-based research diagrams, with optional PNG preview
 
 The project now uses a single canonical entrypoint: FastAPI serves both the API and the web UI.
+<img width="2560" height="1208" alt="86d8a39a-1500-4ae4-9873-824584029466" src="https://github.com/user-attachments/assets/824d839a-47ec-4eba-a005-65294322784e" />
+<img width="2560" height="1208" alt="f1302c93-212c-431d-8212-d38ea7116acc" src="https://github.com/user-attachments/assets/39cca177-5822-415c-bc20-cca73d6b03d6" />
 
 ## Current Architecture
 
