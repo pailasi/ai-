@@ -4,7 +4,6 @@ from __future__ import annotations
 STABILITY_METRIC_DEFINITIONS = {
     "chat_success_rate_7d": "7-day success rate for /api/chat requests.",
     "writing_success_rate_7d": "7-day success rate for /api/writing/help|validate|rewrite requests.",
-    "workflow_success_rate_7d": "7-day success rate for /api/workflows/run|resume requests.",
     "degraded_ratio_7d": "Ratio of responses marked as degraded=true in last 7 days.",
     "top_error_codes_7d": "Top error_code distribution in last 7 days.",
 }
@@ -13,7 +12,6 @@ STABILITY_METRIC_DEFINITIONS = {
 STABILITY_GATE_TARGETS = {
     "chat_success_rate_7d": 0.95,
     "writing_success_rate_7d": 0.95,
-    "workflow_success_rate_7d": 0.90,
     "degraded_ratio_7d_max": 0.15,
     "chat_acceptance_pass_rate_min": 0.80,
 }

@@ -342,60 +342,6 @@
             line-height: 1.65;
             font-size: 14px;
         }
-        .workflow-panel {
-            margin-top: 10px;
-            padding: 10px 12px;
-            border-radius: 16px;
-            border: 1px solid rgba(119, 223, 255, 0.14);
-            background: rgba(8, 20, 35, 0.64);
-            display: grid;
-            gap: 8px;
-            font-size: 12px;
-            color: var(--muted);
-        }
-        .workflow-panel-title {
-            color: var(--accent-bright);
-            font-size: 11px;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-        }
-        .workflow-session-meta {
-            color: var(--ink);
-            line-height: 1.6;
-            word-break: break-word;
-        }
-        .workflow-mentor-box {
-            border-radius: 12px;
-            border: 1px solid rgba(119, 223, 255, 0.12);
-            background: rgba(7, 18, 33, 0.78);
-            padding: 8px 10px;
-            line-height: 1.6;
-            color: var(--ink);
-        }
-        .workflow-mentor-box strong {
-            display: block;
-            margin-bottom: 4px;
-            color: var(--accent);
-            font-size: 11px;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-        }
-        .workflow-step-list {
-            margin: 0;
-            padding-left: 14px;
-            max-height: 220px;
-            overflow: auto;
-            display: grid;
-            gap: 6px;
-        }
-        .workflow-step-list li {
-            line-height: 1.5;
-            color: var(--ink);
-        }
-        .workflow-step-list li small {
-            color: var(--muted);
-            margin-left: 4px;
-        }
         .workspace {
             grid-template-columns: 248px minmax(0, 1fr);
             align-items: start;
@@ -819,6 +765,39 @@
         }
         .excerpt-card strong { display: block; margin-bottom: 8px; color: var(--accent); font-size: 14px; }
         .excerpt-card p { margin: 0; color: var(--ink); font-size: 14px; line-height: 1.7; }
+        .mentor-plan-list { margin: 0 0 10px; padding-left: 18px; color: var(--ink); font-size: 14px; line-height: 1.65; }
+        .mentor-step-card {
+            margin-bottom: 14px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            border: 1px solid var(--line);
+            background: rgba(6, 14, 28, 0.55);
+        }
+        .mentor-step-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+        .mentor-step-badge { font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); }
+        .mentor-step-badge.ok { background: rgba(119, 223, 255, 0.12); color: var(--accent-bright); }
+        .mentor-step-badge.skipped { background: rgba(255, 208, 137, 0.1); color: var(--gold); }
+        .mentor-step-title { font-weight: 700; font-size: 14px; color: var(--accent); }
+        .mentor-answer-block {
+            margin-top: 8px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(9, 22, 40, 0.72);
+            border: 1px solid rgba(119, 223, 255, 0.12);
+            color: var(--ink);
+            font-size: 14px;
+            line-height: 1.75;
+            white-space: pre-wrap;
+        }
+        .mentor-raw-block { margin-top: 8px; }
+        .mentor-raw-pre {
+            margin: 0;
+            font-size: 12px;
+            color: var(--muted);
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow: auto;
+        }
         .ref-checkbox-list {
             max-height: 160px;
             overflow-y: auto;
@@ -1191,30 +1170,6 @@
             <aside class="panel workspace-nav">
                 <div class="workspace-nav-head">
                     <strong>工作区</strong>
-                    <p>从左侧切换功能，不再往下翻页。</p>
-                    <div class="tips" style="margin-top:10px; font-size:12px; padding:10px 12px;">
-                        自动编排（Beta）
-                        <div class="button-row" style="margin-top:8px;">
-                            <button class="secondary" id="workflow-quick-run-btn">一键编排</button>
-                            <button class="secondary" id="workflow-quick-export-btn">导出编排</button>
-                        </div>
-                        <div id="workflow-quick-status">等待运行...</div>
-                    </div>
-                    <div class="workflow-panel">
-                        <div class="workflow-panel-title">编排追踪</div>
-                        <div class="workflow-session-meta" id="workflow-session-meta">暂无会话。</div>
-                        <div class="workflow-mentor-box">
-                            <strong>导师分派</strong>
-                            <div id="workflow-mentor-dispatch">等待导师分派。</div>
-                        </div>
-                        <div class="workflow-mentor-box">
-                            <strong>导师复审</strong>
-                            <div id="workflow-mentor-review">等待导师复审。</div>
-                        </div>
-                        <ol class="workflow-step-list" id="workflow-step-list">
-                            <li>尚无步骤记录。</li>
-                        </ol>
-                    </div>
                 </div>
                 <button class="nav-tab active" data-tab-target="tab-ingest"><small>Workspace 01</small><strong>文献库</strong></button>
                 <button class="nav-tab" data-tab-target="tab-chat"><small>Workspace 02</small><strong>文献问答</strong></button>
@@ -1223,6 +1178,7 @@
                 <button class="nav-tab" data-tab-target="tab-diagram"><small>Workspace 05</small><strong>流程梳理</strong></button>
                 <button class="nav-tab" data-tab-target="tab-figure"><small>Workspace 06</small><strong>论文配图</strong></button>
                 <button class="nav-tab" data-tab-target="tab-reasoning-compare"><small>Workspace 07</small><strong>方法对比</strong></button>
+                <button class="nav-tab" data-tab-target="tab-mentor"><small>Workspace 08</small><strong>AI导师</strong></button>
             </aside>
 
             <section class="panel workspace-stage">
@@ -1346,7 +1302,6 @@
                                 <div class="tips" id="validate-next-action">校验后会在这里显示下一步建议。</div>
                                 <div class="button-row">
                                     <button class="secondary" id="rewrite-btn">按建议重写段落</button>
-                                    <button class="secondary" id="workflow-resume-btn">提交修订并继续编排</button>
                                 </div>
                                 <div class="excerpt-list" id="validate-issues"></div>
                             </div>
@@ -1529,6 +1484,54 @@
                         </div>
                     </article>
 
+                    <article class="card tab-pane" id="tab-mentor" data-stage-title="AI导师" data-stage-description="描述你的目标，由模型规划 skill 顺序并依次调用现有能力，最后给出导师总评。" data-stage-chip="导师">
+                        <div class="workbench">
+                            <div class="form-side">
+                                <div class="block-label">Mentor Goal</div>
+                                <div class="quick-tasks">
+                                    <button class="quick-task-btn" data-fill-target="mentor-goal" data-fill-text="帮我完善方法章节，需要检索证据并给出写作建议">方法章节</button>
+                                    <button class="quick-task-btn" data-fill-target="mentor-goal" data-fill-text="先检索相关文献，再给出摘要写作建议">摘要+检索</button>
+                                    <button class="quick-task-btn" data-fill-target="mentor-goal" data-fill-text="根据当前论文生成方法框架图的文字说明，并建议配图流程">配图规划</button>
+                                </div>
+                                <label for="mentor-goal">目标描述</label>
+                                <textarea id="mentor-goal" placeholder="例如：帮我把方法章节写好，需要配图与校验。"></textarea>
+                                <label for="mentor-topic">主题（可选）</label>
+                                <input id="mentor-topic" type="text" placeholder="留空则从当前论文推断">
+                                <label for="mentor-section">默认章节（用于改写/校验缺参时）</label>
+                                <select id="mentor-section">
+                                    <option value="method" selected>方法</option>
+                                    <option value="abstract">摘要</option>
+                                    <option value="introduction">引言</option>
+                                    <option value="experiment">实验</option>
+                                    <option value="conclusion">结论</option>
+                                    <option value="custom">自定义</option>
+                                </select>
+                                <label for="mentor-stage">稿件阶段</label>
+                                <select id="mentor-stage">
+                                    <option value="draft" selected>初稿 draft</option>
+                                    <option value="proposal">开题 proposal</option>
+                                    <option value="submission">投稿 submission</option>
+                                </select>
+                                <div class="diagram-note">参考文献范围与「写作帮助」相同：请在 Workspace 03 的「参考文献」多选框中勾选；此处留空则不限定参考文献文件名。</div>
+                                <div class="button-row">
+                                    <button class="primary" id="mentor-run-btn">运行导师</button>
+                                    <button class="secondary" id="mentor-refresh-btn">按会话号刷新</button>
+                                </div>
+                                <label for="mentor-session-id">session_id（刷新用）</label>
+                                <input id="mentor-session-id" type="text" placeholder="运行后自动填入">
+                            </div>
+                            <div class="result-side">
+                                <div class="block-label">Plan</div>
+                                <div class="output" id="mentor-plan-out" style="max-height:240px;overflow:auto;">尚未运行。</div>
+                                <div class="block-label">Steps</div>
+                                <div class="output" id="mentor-steps-out" style="max-height:420px;overflow:auto;">—</div>
+                                <div class="block-label">导师总评</div>
+                                <div class="output" id="mentor-summary-out">—</div>
+                                <div class="diagram-note" id="mentor-meta-line">规划来源与状态会显示在这里。</div>
+                            </div>
+                        </div>
+                    </article>
+
                 </div>
             </section>
         </section>
@@ -1590,7 +1593,6 @@
                 if (status.model_error) details.push(`模型：${status.model_error}`);
                 if (status.generation_health && status.generation_health.last_generation_error) details.push(`生成：${status.generation_health.last_generation_error}`);
                 if (status.analysis_model) details.push(`问答模型：${status.analysis_model}`);
-                if (status.mentor_model) details.push(`导师模型：${status.mentor_model}`);
                 if (status.figure_model) details.push(`配图模型：${status.figure_model}`);
                 if (status.retrieval_mode) details.push(`检索模式：${status.retrieval_mode}`);
                 details.push(`向量可用：${status.vector_store_ready ? "是" : "否"}`);
@@ -1654,17 +1656,12 @@
         const validateIssues = document.getElementById("validate-issues");
         const validateNextAction = document.getElementById("validate-next-action");
         const mainlineChip = document.getElementById("mainline-chip");
-        const workflowQuickStatus = document.getElementById("workflow-quick-status");
         const documentList = document.getElementById("document-list");
         const focusDocNote = document.getElementById("focus-doc-note");
         const chatFocusContext = document.getElementById("chat-focus-context");
         const writingFocusContext = document.getElementById("writing-focus-context");
         const diagramFocusContext = document.getElementById("diagram-focus-context");
         const figureFocusContext = document.getElementById("figure-focus-context");
-        const workflowSessionMeta = document.getElementById("workflow-session-meta");
-        const workflowMentorDispatch = document.getElementById("workflow-mentor-dispatch");
-        const workflowMentorReview = document.getElementById("workflow-mentor-review");
-        const workflowStepList = document.getElementById("workflow-step-list");
         const reuseLastOptionsButton = document.getElementById("reuse-last-options-btn");
         const stageSwitcher = document.getElementById("stage-switcher");
         const stageTitle = document.getElementById("stage-title");
@@ -1687,9 +1684,6 @@
         let mainlineStep = "文献库";
         let pendingDiagramFeedback = [];
         let pendingFigureFeedback = [];
-        let workflowSessionId = "";
-        let workflowNeedsRevision = false;
-        let workflowPollTimer = null;
         let indexPollTimer = null;
         let lastIndexingState = false;
         let currentFocusDocument = "";
@@ -1793,19 +1787,6 @@
             return m[scope] || "custom";
         }
 
-        function mapValidateScopeToWorkflowSection(scope) {
-            const m = {
-                abstract: "abstract",
-                introduction: "introduction",
-                method: "method",
-                experiment: "experiment",
-                ending: "conclusion",
-                full: "method",
-                custom: "method",
-            };
-            return m[scope] || "method";
-        }
-
         function updateMainline(stepText) {
             mainlineStep = stepText;
             mainlineChip.textContent = `主轴：${stepText}`;
@@ -1878,115 +1859,6 @@
             } catch (error) {
                 if (focusDocNote) focusDocNote.textContent = `文献列表读取失败：${error.message}`;
             }
-        }
-
-        function clearWorkflowPoll() {
-            if (workflowPollTimer) {
-                clearInterval(workflowPollTimer);
-                workflowPollTimer = null;
-            }
-        }
-
-        function summarizeStepOutput(stepId, output) {
-            if (!output || typeof output !== "object") return "无输出";
-            if (stepId === "mentor_dispatch") {
-                const plan = Array.isArray(output.plan) ? output.plan.slice(0, 2).join(" / ") : "";
-                return plan || output.analysis_focus || "导师已分派任务";
-            }
-            if (stepId === "analysis") {
-                return output.recommendation || `证据数：${(output.evidence || []).length || 0}`;
-            }
-            if (stepId === "writer") {
-                return output.rewritten_text ? `草稿长度：${output.rewritten_text.length}` : "已执行重写";
-            }
-            if (stepId === "validate") {
-                return output.summary || `high 风险：${output.high_risk_count || 0}`;
-            }
-            if (stepId === "figure") {
-                return output.caption || output.error_hint || "已生成配图结果";
-            }
-            if (stepId === "citations") {
-                return `引用条目：${(output.citations || []).length || 0}`;
-            }
-            if (stepId === "mentor_review") {
-                return output.final_summary || output.go_next || "导师已给出复审";
-            }
-            return output.summary || "步骤完成";
-        }
-
-        function renderWorkflowSession(session) {
-            if (!session || typeof session !== "object") return;
-            const statusText = session.status || "unknown";
-            const sessionId = session.session_id || workflowSessionId || "未分配";
-            workflowSessionMeta.textContent = [
-                `会话：${sessionId}`,
-                `状态：${statusText}`,
-                `步骤：${session.current_step || 0}`,
-                session.pending_action ? `待处理：${session.pending_action}` : "",
-            ].filter(Boolean).join(" | ");
-
-            const steps = Array.isArray(session.steps) ? session.steps : [];
-            if (!steps.length) {
-                workflowStepList.innerHTML = "<li>尚无步骤记录。</li>";
-            } else {
-                workflowStepList.innerHTML = steps.map((item, idx) => {
-                    const stepId = item.step_id || `step_${idx + 1}`;
-                    const output = item.output || {};
-                    const marker = output.degraded ? "degraded" : (output.error_code ? "error" : "ok");
-                    const summary = summarizeStepOutput(stepId, output);
-                    return `<li>${stepId}<small>${marker}</small>：${summary}</li>`;
-                }).join("");
-            }
-
-            const dispatchStep = steps.find((item) => item.step_id === "mentor_dispatch");
-            const reviewStep = steps.find((item) => item.step_id === "mentor_review");
-            if (dispatchStep && dispatchStep.output) {
-                const dispatch = dispatchStep.output;
-                const planText = Array.isArray(dispatch.plan) && dispatch.plan.length
-                    ? dispatch.plan.slice(0, 4).join(" -> ")
-                    : (dispatch.analysis_focus || "导师已分派任务。");
-                workflowMentorDispatch.textContent = planText;
-            } else {
-                workflowMentorDispatch.textContent = "等待导师分派。";
-            }
-            if (reviewStep && reviewStep.output) {
-                const review = reviewStep.output;
-                const risks = Array.isArray(review.risk_notes) ? review.risk_notes.join("；") : "";
-                workflowMentorReview.textContent = [review.final_summary || "", review.go_next || "", risks ? `风险：${risks}` : ""]
-                    .filter(Boolean)
-                    .join(" | ") || "导师已完成复审。";
-            } else {
-                workflowMentorReview.textContent = "等待导师复审。";
-            }
-            if (statusText === "needs_revision") {
-                const pendingIssues = session.result && Array.isArray(session.result.pending_high_risk_issues)
-                    ? session.result.pending_high_risk_issues
-                    : [];
-                if (pendingIssues.length) {
-                    const issueText = pendingIssues
-                        .slice(0, 3)
-                        .map((item, idx) => `${idx + 1}) ${item.category || "issue"}: ${item.message || "请修订"}`)
-                        .join("；");
-                    validateNextAction.textContent = `编排拦截：检测到 high 风险问题。${issueText}`;
-                }
-            }
-        }
-
-        function startWorkflowPolling(sessionId) {
-            clearWorkflowPoll();
-            if (!sessionId) return;
-            workflowPollTimer = setInterval(async () => {
-                try {
-                    const data = await requestJson(`/api/workflows/${sessionId}`);
-                    renderWorkflowSession(data);
-                    workflowNeedsRevision = data.status === "needs_revision";
-                    if (["completed", "failed"].includes(data.status || "")) {
-                        clearWorkflowPoll();
-                    }
-                } catch (error) {
-                    clearWorkflowPoll();
-                }
-            }, 4000);
         }
 
         async function loadDocumentScope() {
@@ -2136,6 +2008,7 @@
                 if (targetId === "writing-question") activateTab("tab-writing-help");
                 if (targetId === "diagram-prompt") activateTab("tab-diagram");
                 if (targetId === "figure-prompt") activateTab("tab-figure");
+                if (targetId === "mentor-goal") activateTab("tab-mentor");
             });
         });
 
@@ -2337,97 +2210,6 @@
             }
         });
 
-        document.getElementById("workflow-quick-run-btn").addEventListener("click", async () => {
-            const topic = currentFocusDocument || "当前论文";
-            const stage = "draft";
-            const question = document.getElementById("writing-question").value.trim();
-            if (!question) {
-                workflowQuickStatus.textContent = "请先在写作帮助中填写问题。";
-                return;
-            }
-            workflowQuickStatus.textContent = "正在运行自动编排...";
-            try {
-                const data = await requestJson("/api/workflows/run", {
-                    method: "POST",
-                    body: JSON.stringify({
-                        workflow_id: "question_to_submission_paragraph",
-                        topic,
-                        stage,
-                        question,
-                        section: mapValidateScopeToWorkflowSection(document.getElementById("validate-scope").value),
-                        figure_prompt: document.getElementById("figure-prompt").value.trim(),
-                        template_type: document.getElementById("figure-template").value,
-                        style: document.getElementById("figure-style").value,
-                        detail_level: document.getElementById("figure-detail").value,
-                        language: document.getElementById("figure-language").value,
-                        document_scope: selectedDocumentScope(),
-                    }),
-                });
-                workflowSessionId = data.session_id || "";
-                workflowNeedsRevision = data.status === "needs_revision";
-                const summary = data.result && data.result.mentor_summary ? data.result.mentor_summary : "已完成自动编排。";
-                workflowQuickStatus.textContent = `会话 ${workflowSessionId}：${data.status} | ${summary}`;
-                renderWorkflowSession(data);
-                startWorkflowPolling(workflowSessionId);
-                if (data.status === "needs_revision") {
-                    const draftText = data.result && data.result.draft_paragraph ? data.result.draft_paragraph : "";
-                    if (draftText) {
-                        lastValidationText = draftText;
-                    }
-                    validateNextAction.textContent = "自动编排检测到高风险问题，请先在校验页重写并复检。";
-                    activateTab("tab-writing-validate");
-                }
-            } catch (error) {
-                workflowQuickStatus.textContent = `编排失败：${error.message}`;
-            }
-        });
-
-        document.getElementById("workflow-resume-btn").addEventListener("click", async () => {
-            if (!workflowSessionId || !workflowNeedsRevision) {
-                validateNextAction.textContent = "当前没有待修订的编排会话。";
-                return;
-            }
-            const revisedText = lastValidationText;
-            if (!revisedText || revisedText.length < 20) {
-                validateNextAction.textContent = "请先执行校验获取段落后再继续编排。";
-                return;
-            }
-            try {
-                const data = await requestJson(`/api/workflows/${workflowSessionId}/resume`, {
-                    method: "POST",
-                    body: JSON.stringify({ overrides: { revised_draft: revisedText } }),
-                });
-                workflowNeedsRevision = data.status === "needs_revision";
-                const summary = data.result && data.result.mentor_summary ? data.result.mentor_summary : "继续编排完成。";
-                workflowQuickStatus.textContent = `会话 ${workflowSessionId}：${data.status} | ${summary}`;
-                renderWorkflowSession(data);
-                startWorkflowPolling(workflowSessionId);
-                if (!workflowNeedsRevision) {
-                    validateNextAction.textContent = "编排已继续并完成，可执行导出。";
-                    updateMainline("高风险已处理，可导出");
-                } else {
-                    validateNextAction.textContent = "仍存在高风险问题，请继续重写并复检。";
-                }
-            } catch (error) {
-                validateNextAction.textContent = `继续编排失败：${error.message}`;
-            }
-        });
-
-        document.getElementById("workflow-quick-export-btn").addEventListener("click", async () => {
-            if (!workflowSessionId) {
-                workflowQuickStatus.textContent = "请先运行一次自动编排。";
-                return;
-            }
-            try {
-                const data = await requestJson(`/api/workflows/${workflowSessionId}/export`, { method: "POST" });
-                workflowQuickStatus.textContent = `导出完成：${data.paragraph_path}`;
-                workflowNeedsRevision = false;
-                clearWorkflowPoll();
-            } catch (error) {
-                workflowQuickStatus.textContent = `导出失败：${error.message}`;
-            }
-        });
-
         document.getElementById("ask-btn").addEventListener("click", async () => {
             const question = document.getElementById("question").value.trim();
             const output = document.getElementById("chat-output");
@@ -2516,6 +2298,203 @@
                     { error_code: "REQUEST_FAILED", error_hint: error.message, retryable: true, degraded: true },
                     "方法对比"
                 );
+            }
+        });
+
+        function mentorImageSrc(url) {
+            const u = String(url || "").trim();
+            if (u.startsWith("/generated/") && !u.includes("..")) return u;
+            return "";
+        }
+
+        const MENTOR_SKILL_LABELS = {
+            search_literature: "文献检索与问答",
+            analyze_writing: "写作分析",
+            write_draft: "段落改写",
+            validate_text: "论文校验",
+            generate_figure: "论文配图",
+            audit_figure: "配图审计",
+            generate_diagram: "流程图",
+            compare_methods: "方法对比",
+        };
+
+        function formatMentorPlanHtml(plan) {
+            const rows = Array.isArray(plan) ? plan : [];
+            if (!rows.length) return '<p class="diagram-note">（无规划步骤）</p>';
+            const ol = rows
+                .map((row) => {
+                    const sid = row.skill_id || "";
+                    const label = MENTOR_SKILL_LABELS[sid] || sid || "（未知）";
+                    const why = escapeHtml((row.rationale || "").trim() || "—");
+                    return `<li><strong>${escapeHtml(label)}</strong> — ${why}</li>`;
+                })
+                .join("");
+            const raw = escapeHtml(JSON.stringify(plan, null, 2));
+            return `<ol class="mentor-plan-list">${ol}</ol><details class="mentor-raw-block"><summary>查看规划 JSON</summary><pre class="mentor-raw-pre">${raw}</pre></details>`;
+        }
+
+        function formatMentorStepBody(skillId, status, detail, result) {
+            if (status === "skipped") {
+                return `<p class="diagram-note">${escapeHtml(detail || "已跳过该步。")}</p>`;
+            }
+            if (!result || typeof result !== "object") {
+                return '<p class="diagram-note">（无返回内容）</p>';
+            }
+            if (skillId === "search_literature") {
+                const ans = escapeHtml(result.answer || "").replace(/\n/g, "<br>");
+                const src =
+                    Array.isArray(result.sources) && result.sources.length
+                        ? `<div class="tips">来源：${result.sources.map((s) => escapeHtml(String(s))).join("、")}</div>`
+                        : "";
+                const ret = result.retrieval_source
+                    ? `<div class="tips">检索：${escapeHtml(String(result.retrieval_source))}</div>`
+                    : "";
+                const err = result.error_code
+                    ? `<div class="reliability-box warn">错误码：${escapeHtml(String(result.error_code))}</div>`
+                    : "";
+                return `${err}${ret}<div class="mentor-answer-block">${ans || "（模型未返回正文）"}</div>${src}`;
+            }
+            if (skillId === "analyze_writing") {
+                const rec = escapeHtml(result.recommendation || "").replace(/\n/g, "<br>");
+                const tmpl = escapeHtml(result.draft_template || "").replace(/\n/g, "<br>");
+                const risks = Array.isArray(result.risk_notes)
+                    ? result.risk_notes.map((x) => `<li>${escapeHtml(String(x))}</li>`).join("")
+                    : "";
+                const riskBlock = risks ? `<ul style="margin:8px 0 0 18px;color:var(--muted);font-size:13px;">${risks}</ul>` : "";
+                return `<div class="mentor-answer-block">${rec || "—"}</div><div class="block-label" style="margin-top:12px;">模板草稿</div><div class="mentor-answer-block">${tmpl || "—"}</div>${riskBlock}`;
+            }
+            if (skillId === "write_draft") {
+                const body = escapeHtml(result.rewritten_text || "").replace(/\n/g, "<br>");
+                const notes = Array.isArray(result.notes)
+                    ? `<ul style="margin:8px 0 0 18px;font-size:13px;">${result.notes.map((x) => `<li>${escapeHtml(String(x))}</li>`).join("")}</ul>`
+                    : "";
+                return `<div class="mentor-answer-block">${body || "—"}</div>${notes}`;
+            }
+            if (skillId === "validate_text") {
+                const sm = escapeHtml(result.summary || "").replace(/\n/g, "<br>");
+                const hr = result.high_risk_count != null ? `<div class="tips">高风险条数：${escapeHtml(String(result.high_risk_count))}</div>` : "";
+                return `${hr}<div class="mentor-answer-block">${sm || "—"}</div>`;
+            }
+            if (skillId === "generate_figure") {
+                const cap = escapeHtml(result.caption || "").replace(/\n/g, "<br>");
+                const src = mentorImageSrc(result.image_url);
+                const img = src
+                    ? `<div style="margin-top:10px;"><img class="diagram-preview" src="${src}" alt="figure" style="max-width:100%;border-radius:12px;"></div>`
+                    : "";
+                return `<div class="tips">${escapeHtml(String(result.title || ""))}</div><div class="mentor-answer-block">${cap || "—"}</div>${img}`;
+            }
+            if (skillId === "audit_figure") {
+                const ok = result.passed ? "通过" : "未通过";
+                const issues = Array.isArray(result.issues)
+                    ? result.issues
+                          .map((it) => {
+                              if (!it || typeof it !== "object") return "";
+                              return `<div class="excerpt-card"><strong>${escapeHtml(String(it.severity || ""))}</strong><p>${escapeHtml(
+                                  String(it.message || "")
+                              )}</p></div>`;
+                          })
+                          .join("")
+                    : "";
+                return `<div class="tips">审计：${escapeHtml(ok)}</div><div class="mentor-answer-block">${escapeHtml(
+                    String(result.summary || "")
+                )}</div>${issues}`;
+            }
+            if (skillId === "generate_diagram") {
+                const code = escapeHtml(result.mermaid_code || "").slice(0, 4000);
+                const src = mentorImageSrc(result.image_url);
+                const img = src
+                    ? `<div style="margin-top:10px;"><img class="diagram-preview" src="${src}" alt="diagram" style="max-width:100%;border-radius:12px;"></div>`
+                    : "";
+                return `${img}<details class="mentor-raw-block"><summary>Mermaid 源码（节选）</summary><pre class="mentor-raw-pre">${code}</pre></details>`;
+            }
+            if (skillId === "compare_methods") {
+                const sm = escapeHtml(result.summary || "").replace(/\n/g, "<br>");
+                const st = result.status ? `<div class="tips">状态：${escapeHtml(String(result.status))}</div>` : "";
+                return `${st}<div class="mentor-answer-block">${sm || "—"}</div>`;
+            }
+            const raw = escapeHtml(JSON.stringify(result, null, 2));
+            return `<details class="mentor-raw-block" open><summary>结构化结果</summary><pre class="mentor-raw-pre">${raw}</pre></details>`;
+        }
+
+        function formatMentorStepsHtml(steps) {
+            const list = Array.isArray(steps) ? steps : [];
+            if (!list.length) return '<p class="diagram-note">（无执行步骤）</p>';
+            return list
+                .map((step, idx) => {
+                    const sid = step.skill_id || "";
+                    const label = MENTOR_SKILL_LABELS[sid] || sid || `步骤 ${idx + 1}`;
+                    const st = step.status === "skipped" ? "skipped" : "ok";
+                    const badgeText = step.status === "skipped" ? "已跳过" : "已完成";
+                    const body = formatMentorStepBody(sid, step.status, step.detail, step.result);
+                    const raw = escapeHtml(JSON.stringify(step, null, 2));
+                    return `<div class="mentor-step-card"><div class="mentor-step-head"><span class="mentor-step-badge ${st}">${badgeText}</span><span class="mentor-step-title">${escapeHtml(
+                        label
+                    )}</span></div>${body}<details class="mentor-raw-block"><summary>该步原始 JSON</summary><pre class="mentor-raw-pre">${raw}</pre></details></div>`;
+                })
+                .join("");
+        }
+
+        function renderMentorSession(data) {
+            const planEl = document.getElementById("mentor-plan-out");
+            const stepsEl = document.getElementById("mentor-steps-out");
+            const summaryEl = document.getElementById("mentor-summary-out");
+            const metaEl = document.getElementById("mentor-meta-line");
+            const sidEl = document.getElementById("mentor-session-id");
+            if (sidEl && data.session_id) sidEl.value = data.session_id;
+            planEl.innerHTML = formatMentorPlanHtml(data.plan || []);
+            stepsEl.innerHTML = formatMentorStepsHtml(data.steps || []);
+            summaryEl.textContent = data.summary || "";
+            const ps = data.plan_source || "";
+            const err = data.error ? ` | 错误：${data.error}` : "";
+            metaEl.textContent = `状态：${data.status || ""} | 规划来源：${ps}${err}`;
+        }
+
+        document.getElementById("mentor-run-btn").addEventListener("click", async () => {
+            const goal = document.getElementById("mentor-goal").value.trim();
+            if (!goal) {
+                document.getElementById("mentor-summary-out").textContent = "请先填写目标描述。";
+                return;
+            }
+            const btn = document.getElementById("mentor-run-btn");
+            setButtonState(btn, true, "运行中...", "运行导师");
+            document.getElementById("mentor-plan-out").innerHTML = '<p class="diagram-note">规划中...</p>';
+            document.getElementById("mentor-steps-out").innerHTML = '<p class="diagram-note">执行中...</p>';
+            document.getElementById("mentor-summary-out").textContent = "等待汇总...";
+            try {
+                const data = await requestJson("/api/mentor/run", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        goal,
+                        topic: document.getElementById("mentor-topic").value.trim(),
+                        section: document.getElementById("mentor-section").value,
+                        stage: document.getElementById("mentor-stage").value,
+                        reference_documents: selectedDocumentScope(),
+                    }),
+                });
+                renderMentorSession(data);
+            } catch (error) {
+                document.getElementById("mentor-summary-out").textContent = `请求失败：${error.message}`;
+                document.getElementById("mentor-meta-line").textContent = "";
+            } finally {
+                setButtonState(btn, false, "运行中...", "运行导师");
+            }
+        });
+
+        document.getElementById("mentor-refresh-btn").addEventListener("click", async () => {
+            const sid = document.getElementById("mentor-session-id").value.trim();
+            if (!sid) {
+                document.getElementById("mentor-summary-out").textContent = "请先填写 session_id。";
+                return;
+            }
+            const btn = document.getElementById("mentor-refresh-btn");
+            setButtonState(btn, true, "刷新中...", "按会话号刷新");
+            try {
+                const data = await requestJson(`/api/mentor/${encodeURIComponent(sid)}`);
+                renderMentorSession(data);
+            } catch (error) {
+                document.getElementById("mentor-summary-out").textContent = `刷新失败：${error.message}`;
+            } finally {
+                setButtonState(btn, false, "刷新中...", "按会话号刷新");
             }
         });
 

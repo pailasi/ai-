@@ -29,11 +29,9 @@ class Settings(BaseSettings):
     google_api_key: str = ""
     google_model: str = "models/gemma-3-1b-it"
     analysis_model: str = ""
-    mentor_model: str = ""
     diagram_model: str = ""
     # 图片模型链路（GLM）
     figure_model: str = ""
-    workflow_figure_max_attempts: int = 3
     google_use_system_proxy: bool = False
     google_proxy_url: str = ""
     google_request_timeout_seconds: int = 6

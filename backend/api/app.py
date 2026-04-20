@@ -8,8 +8,8 @@ from api.dependencies import generated_dir, research_service, settings
 from api.routers.assistant import router as assistant_router
 from api.routers.core import router as core_router
 from api.routers.documents import router as documents_router
+from api.routers.mentor import router as mentor_router
 from api.routers.status import router as status_router
-from api.routers.workflows import router as workflows_router
 from api.routers.writing import router as writing_router
 
 
@@ -43,6 +43,6 @@ def create_app() -> FastAPI:
     app.include_router(documents_router)
     app.include_router(assistant_router)
     app.include_router(writing_router)
-    app.include_router(workflows_router)
     app.include_router(status_router)
+    app.include_router(mentor_router)
     return app

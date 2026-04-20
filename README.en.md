@@ -35,8 +35,7 @@ Sci-Copilot/
 │  ├─ schemas.py
 │  ├─ services.py
 │  ├─ reasoning/
-│  ├─ skills/
-│  ├─ workflows/
+│  ├─ mentor.py
 │  ├─ requirements.txt
 │  └─ .env.example
 ├─ frontend/
@@ -83,76 +82,18 @@ python main.py
 
 ## Environment
 
-Configure `backend/.env` as needed:
+1. Copy the template: from `backend/`, run `cp .env.example .env` (Windows: `copy .env.example .env`).  
+2. **Treat [`backend/.env.example`](backend/.env.example) as the canonical reference** — it is grouped into sections (minimal setup → each provider → routing → knowledge base) with comments and safe defaults.  
+3. Configure **at least one text provider** (`CODEX_API_KEY`, `GOOGLE_API_KEY`, or `OPEN_API_KEY`) for chat, writing, mentor planning, etc. Figure generation uses the separate `IMG_*` / `CODEX_FIGURE_MODEL` / GLM path (see the figure section in the example file).
 
-```env
-APP_ENV=development
-HOST=127.0.0.1
-PORT=8000
-MAX_UPLOAD_SIZE_MB=25
-API_ACCESS_KEY=
-STATUS_INCLUDE_DEBUG=true
+Default routing (override in `.env`):
 
-CODEX_API_KEY=
-CODEX_BASE_URL=https://api.openai.com/v1
-CODEX_TEXT_MODEL=gpt-4.1-mini
-CODEX_FIGURE_MODEL=gpt-image-1
+- **Text** (`/api/chat`, mentor, rewrite, diagram copy, …): `codex → google → openrouter`  
+- **Figures** (`/api/figure`): `img → codex → glm`  
 
-IMG_API_KEY=
-IMG_BASE_URL=
-IMG_FIGURE_MODEL=
+Tuning: `TEXT_PROVIDER_ORDER`, `FIGURE_PROVIDER_ORDER`, `TEXT_MODEL_MAP`, `FIGURE_MODEL_MAP`, `DISABLE_PROVIDERS` (section 7 in `.env.example`).
 
-GOOGLE_API_KEY=
-GOOGLE_MODEL=models/gemma-3-1b-it
-ANALYSIS_MODEL=models/gemma-3-1b-it
-MENTOR_MODEL=models/gemma-3-1b-it
-DIAGRAM_MODEL=models/gemma-3-1b-it
-
-OPEN_API_KEY=
-OPEN_MODEL=google/gemini-2.5-flash
-
-TEXT_PROVIDER_ORDER=codex,google,openrouter
-FIGURE_PROVIDER_ORDER=img,codex,glm
-TEXT_MODEL_MAP={}
-FIGURE_MODEL_MAP={}
-DISABLE_PROVIDERS=
-
-GLM_API_KEY=
-GLM_MODEL=glm-4v-flash
-FIGURE_MODEL=cogview-3-plus
-
-ENABLE_VECTOR_STORE=true
-EMBEDDINGS_MODEL=all-MiniLM-L6-v2
-```
-
-Recommended routing:
-
-- Text tasks (`/api/chat`, mentor dispatch/review, rewrite, diagram text generation): Codex primary when configured, otherwise Google with OpenRouter fallback
-- Figure generation (`/api/figure`): IMG primary, then Codex/OpenAI-compatible, then GLM fallback
-
-Global routing policy knobs:
-
-- `TEXT_PROVIDER_ORDER`: comma-separated text provider sequence
-- `FIGURE_PROVIDER_ORDER`: comma-separated figure provider sequence
-- `TEXT_MODEL_MAP`: JSON provider->model override map
-- `FIGURE_MODEL_MAP`: JSON provider->model override map
-- `DISABLE_PROVIDERS`: comma-separated provider IDs to temporarily disable
-
-Example:
-
-```env
-TEXT_PROVIDER_ORDER=openrouter,google,codex
-FIGURE_PROVIDER_ORDER=img,glm,codex
-TEXT_MODEL_MAP={"openrouter":"google/gemini-2.5-flash","google":"models/gemma-3-1b-it"}
-FIGURE_MODEL_MAP={"img":"gemini-2.5-flash-image-preview","glm":"cogview-3-plus"}
-DISABLE_PROVIDERS=codex
-```
-
-If the external providers are unavailable, text and figure endpoints still fall back to degraded local behavior where supported:
-
-- Chat returns a clear fallback message
-- Diagram generation returns a fallback Mermaid template
-- Figure generation returns a fallback SVG/placeholder result when the image provider chain is unavailable
+When upstream models are unavailable, endpoints degrade where supported (explicit errors, Mermaid heuristics, figure placeholders).
 
 If `API_ACCESS_KEY` is set, all `/api/*` routes require `X-API-Key` with the same value.
 
@@ -173,10 +114,8 @@ If `API_ACCESS_KEY` is set, all `/api/*` routes require `X-API-Key` with the sam
 - `POST /api/reasoning/method-compare`
 - `POST /api/writing/validate`
 - `POST /api/writing/rewrite`
-- `POST /api/workflows/run`
-- `GET /api/workflows/{session_id}`
-- `POST /api/workflows/{session_id}/resume`
-- `POST /api/workflows/{session_id}/export`
+- `POST /api/mentor/run`
+- `GET /api/mentor/{session_id}`
 
 Interactive docs are available at [http://localhost:8000/docs](http://localhost:8000/docs).
 
@@ -263,77 +202,12 @@ Use `GET /api/figure/templates` to fetch supported template IDs:
 - `comparison`
 - `ablation`
 
-## Workflow Mode (Beta)
+## AI Mentor (Agent)
 
-Sci-Copilot now provides a built-in workflow:
-`question_to_submission_paragraph`
+**Workspace 08** maps to `POST /api/mentor/run`: you describe a goal in natural language; a text model plans which skills to run, executes them through existing `ResearchService` APIs (retrieval, writing, validation, figures, …), then returns a synthesized review. Planning and synthesis use the same global text stack as chat (`CODEX_API_KEY` / `GOOGLE_API_KEY` / `OPEN_API_KEY`, `TEXT_PROVIDER_ORDER`, `ANALYSIS_MODEL`, … — see `backend/.env.example`).
 
-This workflow chains:
-1. Mentor dispatch (导师AI编排任务)
-2. Analysis agent (论文分析与证据提取)
-3. Writer agent (段落撰写)
-4. Manuscript validation
-5. Figure agent (科研配图)
-6. Citation agent (证据清单)
-7. Mentor review (导师AI最终评审)
-
-Example run request:
-
-```json
-{
-  "workflow_id": "question_to_submission_paragraph",
-  "topic": "RAG for scientific writing",
-  "stage": "draft",
-  "question": "How should I structure method and experiment sections?",
-  "section": "method"
-}
-```
-
-This orchestration runs automatically after `run`, with no manual step required.
-Mentor AI uses an internal prompt-tuned model interface (configure `MENTOR_MODEL` in `backend/.env`; falls back to `ANALYSIS_MODEL`).
-Frontend now provides a lightweight entry in the left workspace panel: **自动编排（Beta）** (`一键编排` / `导出编排`).
-
-When workflow status is `needs_revision`, you must revise and re-validate high-risk issues before export.
-`POST /api/workflows/{session_id}/resume` accepts:
-
-```json
-{
-  "overrides": {
-    "revised_draft": "your revised paragraph..."
-  }
-}
-```
-
-Export now provides a three-piece package:
-- `paragraph_path`
-- `figure_caption_path`
-- `evidence_path`
-
-Workflow result now also includes:
-- `evidence_trace`: source/page/chunk trace list from analysis evidence
-- `step_trace`: normalized status of each workflow step
-- `revision_history`: revised draft history captured by resume actions
-
-## Mentor-Skill Governance
-
-Workflow orchestration follows a fixed role chain:
-
-1. `mentor_dispatch_skill`: mentor dispatch + execution constraints
-2. `analysis_agent_skill`: evidence retrieval and recommendation
-3. `writer_agent_skill`: paragraph rewrite
-4. `manuscript_validate_skill`: structured risk check
-5. `figure_agent_skill`: figure generation (degrade-safe fallback supported)
-6. `citation_agent_skill`: citation pack construction
-7. `mentor_review_skill`: final mentor review and go-next decision
-
-Quality gates:
-- High-risk validation issues force `needs_revision`
-- Resume requires revised draft via `POST /api/workflows/{session_id}/resume`
-- Export is allowed only when session status is `completed`
-
-Human-in-the-loop:
-- When `needs_revision` is returned, revise text first, then resume
-- In degraded runs (e.g., model/image fallback), manually review terminology and caption consistency before submission
+- `POST /api/mentor/run`: body includes `goal`; optional `topic`, `section`, `stage`, `reference_documents`.  
+- `GET /api/mentor/{session_id}`: fetch the same session (in-memory store; use external storage if you run multiple workers).
 
 ## Troubleshooting Diagram/Figure Generation
 
@@ -349,7 +223,7 @@ Human-in-the-loop:
   - `knowledge_base_ready` (local indexed content readiness)
   - `last_retrieval_source` (`vector` / `keyword` / `fallback` / `none`)
   - `product_metrics` (chat/writing/diagram/figure request counters)
-  - `mentor_model` (mentor AI model route)
+  - additional debug fields in development when `STATUS_INCLUDE_DEBUG=true`
 - Check `error_code` in API response for actionable hints:
   - `MODEL_TIMEOUT`
   - `MODEL_NOT_FOUND`
@@ -401,7 +275,7 @@ The container exposes the app at [http://localhost:8000](http://localhost:8000).
 
 This repository is open-sourced as an actively evolving research-assistant prototype.
 
-- **Supported scope**: local deployment, document ingestion, knowledge retrieval, chat/writing/diagram/figure APIs, workflow beta path.
+- **Supported scope**: local deployment, document ingestion, knowledge retrieval, chat/writing/diagram/figure APIs, Workspace AI mentor (agent orchestration).
 - **Out of scope**: production multi-tenant deployment, strict SLA guarantees, managed cloud hosting defaults.
 - **Issue reporting**: use GitHub Issues for bugs/feature requests; use private channels described in [`SECURITY.en.md`](SECURITY.en.md) for vulnerabilities.
 - **Contribution guide**: see [`CONTRIBUTING.en.md`](CONTRIBUTING.en.md) and [`CODE_OF_CONDUCT.en.md`](CODE_OF_CONDUCT.en.md).
@@ -424,9 +298,9 @@ This repository is open-sourced as an actively evolving research-assistant proto
 Before public trial release, ensure all items are green:
 
 - Security: no plaintext API keys in repository; debug scripts read env vars only.
-- Stability: `test_smoke.py`, `test_workflow_engine.py`, and `test_chat_acceptance.py` pass.
+- Stability: `test_smoke.py`, `test_mentor.py`, and `test_chat_acceptance.py` pass (or your chosen CI subset).
 - Reliability UX: frontend clearly shows `degraded`/`error_hint` for chat/diagram/figure.
-- Workflow traceability: export includes paragraph + figure caption + evidence + step/revision trace.
+- Mentor sessions: `GET /api/mentor/{session_id}` replays stored in-process results (not durable across restarts).
 - Deployment: `docker compose up --build` starts app and `/api/status` returns healthy core fields.
 
 ## Execution Playbooks

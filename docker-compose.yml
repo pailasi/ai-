@@ -7,6 +7,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    # Optional: after `cp backend/.env.example backend/.env` and filling keys, uncomment:
+    # env_file:
+    #   - ./backend/.env
     environment:
       APP_ENV: ${APP_ENV:-development}
       HOST: ${HOST:-0.0.0.0}

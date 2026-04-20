@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -232,34 +232,25 @@ class DocumentItem(BaseModel):
     is_focus: bool = False
 
 
-class WorkflowRunRequest(BaseModel):
-    workflow_id: Literal["question_to_submission_paragraph"] = "question_to_submission_paragraph"
-    topic: str = Field(..., min_length=1, max_length=300)
-    stage: Literal["proposal", "draft", "submission"] = "draft"
-    question: str = Field(..., min_length=1, max_length=2000)
+class MentorRunRequest(BaseModel):
+    goal: str = Field(..., min_length=1, max_length=4000)
+    topic: str = Field(default="", max_length=300)
     section: Literal["abstract", "introduction", "method", "experiment", "conclusion", "custom"] = "method"
-    figure_prompt: str = Field(default="")
-    template_type: Literal["method_framework", "experiment_flow", "comparison", "ablation"] = "method_framework"
-    style: Literal["academic", "minimal", "presentation"] = "academic"
-    detail_level: Literal["low", "medium", "high"] = "medium"
-    language: Literal["zh", "en"] = "zh"
-    document_scope: list[str] = Field(default_factory=list)
-    pause_after_step: int = -1
-    max_figure_attempts: int | None = Field(default=None, ge=1, le=5)
+    stage: Literal["proposal", "draft", "submission"] = "draft"
+    reference_documents: list[str] = Field(default_factory=list)
 
 
-class WorkflowResumeRequest(BaseModel):
-    overrides: dict[str, object] = Field(default_factory=dict)
-
-
-class WorkflowSessionResponse(BaseModel):
+class MentorSessionResponse(BaseModel):
     session_id: str
-    workflow_id: str
-    status: str
-    current_step: int
-    created_at: int
-    updated_at: int
-    steps: list[dict[str, object]] = Field(default_factory=list)
-    result: dict[str, object] = Field(default_factory=dict)
-    metrics: dict[str, object] = Field(default_factory=dict)
-    pending_action: str = ""
+    status: Literal["running", "completed", "failed"] = "running"
+    goal: str = ""
+    topic: str = ""
+    section: str = ""
+    stage: str = ""
+    reference_documents: list[str] = Field(default_factory=list)
+    plan_source: str = ""
+    plan: list[dict[str, Any]] = Field(default_factory=list)
+    steps: list[dict[str, Any]] = Field(default_factory=list)
+    summary: str = ""
+    error: str = ""
+

@@ -1247,76 +1247,6 @@ self, model_name: str, contents: str, timeout_seconds: int | None = None):
             "degraded": bool(meta.get("degraded", False)),
         }
 
-    def mentor_dispatch(self, topic: str, stage: str, question: str, section: str) -> dict[str, object]:
-        fallback = self._mentor_default_dispatch(topic, section, question)
-        if not self._has_text_model():
-            return {**fallback, "degraded": True, **self._error_meta("CONFIG_MISSING", degraded=True, retryable=False)}
-
-        prompt = (
-            "你是 Sci-Copilot 内置导师 AI（课题组指导风格）。"
-            "请把任务分配给 analysis_agent、writer_agent、figure_agent，最后由 mentor_agent 收尾。\n"
-            "输出严格 JSON（不要 markdown 代码块），字段："
-            "plan(list[str])、analysis_focus(str)、writing_focus(str)、figure_focus(str)、"
-            "required_evidence_count(int)、forbidden_claims(list[str])。\n\n"
-            f"研究主题：{topic}\n"
-            f"当前阶段：{stage}\n"
-            f"核心问题：{question}\n"
-            f"章节类型：{section}\n"
-        )
-        response, _, _, _ = self._generate_text_with_fallback(settings.mentor_model or settings.analysis_model, prompt)
-        if response is not None:
-            payload = self._parse_json_object((response.text or "").strip())
-            if payload:
-                plan = payload.get("plan")
-                if isinstance(plan, list) and plan:
-                    return {
-                        "role": "mentor",
-                        "plan": [str(item) for item in plan[:6]],
-                        "analysis_focus": str(payload.get("analysis_focus", fallback["analysis_focus"])),
-                        "writing_focus": str(payload.get("writing_focus", fallback["writing_focus"])),
-                        "figure_focus": str(payload.get("figure_focus", fallback["figure_focus"])),
-                        "required_evidence_count": int(payload.get("required_evidence_count", fallback["required_evidence_count"]) or 1),
-                        "forbidden_claims": [
-                            str(item) for item in list(payload.get("forbidden_claims", fallback["forbidden_claims"]))[:5]
-                        ],
-                    }
-        return {**fallback, "degraded": True, **self._classify_error(self.model_error, degraded=True)}
-
-    def mentor_review(
-        self,
-        recommendation: str,
-        draft_paragraph: str,
-        validation_summary: str,
-        figure_caption: str,
-    ) -> dict[str, object]:
-        fallback = self._mentor_default_review(validation_summary)
-        if not self._has_text_model():
-            return {**fallback, "degraded": True, **self._error_meta("CONFIG_MISSING", degraded=True, retryable=False)}
-
-        prompt = (
-            "你是 Sci-Copilot 内置导师 AI。你要对分析、写作、校验、配图结果做最终把关。"
-            "输出严格 JSON（不要 markdown 代码块），字段："
-            "final_summary(str)、go_next(str)、risk_notes(list[str])。\n\n"
-            f"分析建议：{recommendation}\n\n"
-            f"草稿段落：{draft_paragraph[:1400]}\n\n"
-            f"校验摘要：{validation_summary}\n\n"
-            f"图注：{figure_caption}\n"
-        )
-        response, _, _, _ = self._generate_text_with_fallback(settings.mentor_model or settings.analysis_model, prompt)
-        if response is not None:
-            payload = self._parse_json_object((response.text or "").strip())
-            if payload:
-                risks = payload.get("risk_notes", [])
-                if not isinstance(risks, list):
-                    risks = []
-                return {
-                    "role": "mentor",
-                    "final_summary": str(payload.get("final_summary", fallback["final_summary"])),
-                    "go_next": str(payload.get("go_next", fallback["go_next"])),
-                    "risk_notes": [str(item) for item in risks[:5]] or fallback["risk_notes"],
-                }
-        return {**fallback, "degraded": True, **self._classify_error(self.model_error, degraded=True)}
-
     def _concat_pdf_text(self, pdf_path: Path) -> str:
         parts = self._extract_pages(pdf_path)
         return "\n\n".join(text for _, text in parts).strip()
@@ -1548,7 +1478,7 @@ self, model_name: str, contents: str, timeout_seconds: int | None = None):
             f"\n\n{slim}"
         )
         response, _, _, _ = self._generate_text_with_fallback(
-            settings.mentor_model or settings.analysis_model, fix_prompt
+            settings.analysis_model, fix_prompt
         )
         if response is None:
             return None
@@ -1589,7 +1519,7 @@ self, model_name: str, contents: str, timeout_seconds: int | None = None):
             f"待审阅正文：\n{normalized[:8000]}\n"
         )
         response, _, _, _ = self._generate_text_with_fallback(
-            settings.mentor_model or settings.analysis_model, prompt
+            settings.analysis_model, prompt
         )
         if response is None:
             return [], False
@@ -2146,29 +2076,6 @@ self, model_name: str, contents: str, timeout_seconds: int | None = None):
             "retryable": not passed,
             "degraded": not passed,
         }
-
-    def refine_figure_prompt_from_audit(
-        self,
-        prompt: str,
-        attempt: int,
-        audit_summary: str = "",
-        issues: list[dict[str, object]] | None = None,
-    ) -> str:
-        issues = issues or []
-        suggestions = [
-            str(item.get("suggestion", "")).strip()
-            for item in issues
-            if isinstance(item, dict) and str(item.get("suggestion", "")).strip()
-        ]
-        issue_text = "；".join(suggestions[:3]) if suggestions else "强调关键元素完整覆盖和信息流方向。"
-        guidance = (
-            f"第 {attempt + 1} 次生成要求：严格覆盖用户核心元素，图中体现输入-处理-输出关系，"
-            "避免泛化表达，优先学术投稿风格。"
-        )
-        summary_text = str(audit_summary).strip()
-        if summary_text:
-            guidance += f" 审计反馈：{summary_text}"
-        return f"{str(prompt).strip()}\n{guidance}\n修正建议：{issue_text}"
 
     def generation_health(self) -> dict[str, object]:
         return {
@@ -2982,36 +2889,6 @@ self, model_name: str, contents: str, timeout_seconds: int | None = None):
             return payload if isinstance(payload, dict) else {}
         except json.JSONDecodeError:
             return {}
-
-    def _mentor_default_dispatch(self, topic: str, section: str, question: str) -> dict[str, object]:
-        return {
-            "role": "mentor",
-            "plan": [
-                "analysis_agent: 抽取证据并建立论证主线",
-                "writer_agent: 生成章节学术段落",
-                "figure_agent: 生成与段落一致的科研图及图注",
-                "mentor_agent: 汇总风险并给出下一步建议",
-            ],
-            "analysis_focus": f"围绕问题“{question[:120]}”形成可引用证据链。",
-            "writing_focus": f"按 {section} 章节规范输出，强调可验证性与术语一致。",
-            "figure_focus": f"围绕“{topic[:120]}”输出投稿风格配图。",
-            "required_evidence_count": 2,
-            "forbidden_claims": [
-                "在未给出量化指标时使用“显著优于”",
-                "在无引用支撑时给出绝对结论",
-            ],
-        }
-
-    def _mentor_default_review(self, validation_summary: str) -> dict[str, object]:
-        return {
-            "role": "mentor",
-            "final_summary": f"导师评审：已完成分析、写作、配图链路，当前校验结论：{validation_summary}",
-            "go_next": "先修复高优先问题，再统一术语与图注后提交。",
-            "risk_notes": [
-                "检查证据引用是否覆盖关键论断。",
-                "检查图注与正文术语是否一致。",
-            ],
-        }
 
     def _structure_generation_prompt(
         self,

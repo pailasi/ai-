@@ -34,8 +34,7 @@ Sci-Copilot/
 │  ├─ schemas.py
 │  ├─ services.py
 │  ├─ reasoning/
-│  ├─ skills/
-│  ├─ workflows/
+│  ├─ mentor.py
 │  ├─ requirements.txt
 │  └─ .env.example
 ├─ frontend/
@@ -81,76 +80,18 @@ python main.py
 
 ## 环境变量
 
-按需配置 `backend/.env`：
+1. 复制模板：`cd backend` 后执行 `cp .env.example .env`（Windows：`copy .env.example .env`）。  
+2. **以 [`backend/.env.example`](backend/.env.example) 为唯一权威说明**：文件内按「最小配置思路 → 各 provider → 路由 → 知识库」分段注释，每个变量一行，含默认值与填写提示。  
+3. 至少配置**一条文本模型链路**（`CODEX_API_KEY` 或 `GOOGLE_API_KEY` 或 `OPEN_API_KEY`）才能使用问答、写作、导师规划等在线能力；配图另需 `IMG_*` / `CODEX_FIGURE_MODEL` / `GLM` 等（见示例文件「配图」小节）。
 
-```env
-APP_ENV=development
-HOST=127.0.0.1
-PORT=8000
-MAX_UPLOAD_SIZE_MB=25
-API_ACCESS_KEY=
-STATUS_INCLUDE_DEBUG=true
+推荐路由（可在 `.env` 中改顺序）：
 
-CODEX_API_KEY=
-CODEX_BASE_URL=https://api.openai.com/v1
-CODEX_TEXT_MODEL=gpt-4.1-mini
-CODEX_FIGURE_MODEL=gpt-image-1
+- **文本**（`/api/chat`、导师、改写、示意图文案等）：默认 `codex → google → openrouter`  
+- **配图**（`/api/figure`）：默认 `img → codex → glm`  
 
-IMG_API_KEY=
-IMG_BASE_URL=
-IMG_FIGURE_MODEL=
+路由与模型覆盖：`TEXT_PROVIDER_ORDER`、`FIGURE_PROVIDER_ORDER`、`TEXT_MODEL_MAP`、`FIGURE_MODEL_MAP`、`DISABLE_PROVIDERS`（详见 `.env.example` 第 7 节）。
 
-GOOGLE_API_KEY=
-GOOGLE_MODEL=models/gemma-3-1b-it
-ANALYSIS_MODEL=models/gemma-3-1b-it
-MENTOR_MODEL=models/gemma-3-1b-it
-DIAGRAM_MODEL=models/gemma-3-1b-it
-
-OPEN_API_KEY=
-OPEN_MODEL=google/gemini-2.5-flash
-
-TEXT_PROVIDER_ORDER=codex,google,openrouter
-FIGURE_PROVIDER_ORDER=img,codex,glm
-TEXT_MODEL_MAP={}
-FIGURE_MODEL_MAP={}
-DISABLE_PROVIDERS=
-
-GLM_API_KEY=
-GLM_MODEL=glm-4v-flash
-FIGURE_MODEL=cogview-3-plus
-
-ENABLE_VECTOR_STORE=true
-EMBEDDINGS_MODEL=all-MiniLM-L6-v2
-```
-
-推荐路由策略：
-
-- 文本类（`/api/chat`、导师编排与评审、改写、示意图文案等）：已配置 Codex 时优先 Codex，否则 Google，再 OpenRouter 降级  
-- 配图（`/api/figure`）：IMG 优先，其次 Codex（OpenAI 兼容），再 GLM  
-
-全局可调参数：
-
-- `TEXT_PROVIDER_ORDER`：文本提供方顺序（逗号分隔）
-- `FIGURE_PROVIDER_ORDER`：配图提供方顺序（逗号分隔）
-- `TEXT_MODEL_MAP`：JSON，`provider -> model` 覆盖
-- `FIGURE_MODEL_MAP`：JSON，`provider -> model` 覆盖
-- `DISABLE_PROVIDERS`：暂时禁用的 provider ID（逗号分隔）
-
-示例：
-
-```env
-TEXT_PROVIDER_ORDER=openrouter,google,codex
-FIGURE_PROVIDER_ORDER=img,glm,codex
-TEXT_MODEL_MAP={"openrouter":"google/gemini-2.5-flash","google":"models/gemma-3-1b-it"}
-FIGURE_MODEL_MAP={"img":"gemini-2.5-flash-image-preview","glm":"cogview-3-plus"}
-DISABLE_PROVIDERS=codex
-```
-
-外部模型不可用时，文本与配图接口在支持的前提下仍会降级：
-
-- 对话返回明确的降级说明  
-- 示意图生成返回备用 Mermaid 模板  
-- 配图在整条链路失败时返回备用 SVG/占位结果  
+外部模型不可用时，文本与配图接口在支持的前提下仍会降级（降级说明、Mermaid 兜底、配图占位等）。
 
 若设置了 `API_ACCESS_KEY`，所有 `/api/*` 须在请求头携带 `X-API-Key`，值与之相同。
 
@@ -170,10 +111,8 @@ DISABLE_PROVIDERS=codex
 - `POST /api/reasoning/method-compare`
 - `POST /api/writing/validate`
 - `POST /api/writing/rewrite`
-- `POST /api/workflows/run`
-- `GET /api/workflows/{session_id}`
-- `POST /api/workflows/{session_id}/resume`
-- `POST /api/workflows/{session_id}/export`
+- `POST /api/mentor/run`
+- `GET /api/mentor/{session_id}`
 
 交互式文档：[http://localhost:8000/docs](http://localhost:8000/docs)。
 
@@ -246,49 +185,12 @@ DISABLE_PROVIDERS=codex
 
 `GET /api/figure/templates` 获取模板 ID，例如：`method_framework`、`experiment_flow`、`comparison`、`ablation`。
 
-## 工作流模式（Beta）
+## AI 导师（Agent）
 
-内置工作流 ID：`question_to_submission_paragraph`。步骤包括：
+前端 **Workspace 08 · AI导师** 对应接口 `POST /api/mentor/run`：提交自然语言目标后，由文本模型规划 skill 顺序，逐步调用现有 `ResearchService` 能力（检索、写作、校验、配图等），最后返回总评。规划与总结使用的模型与全局文本链路一致（`CODEX_API_KEY` / `GOOGLE_API_KEY` / `OPEN_API_KEY` 及 `TEXT_PROVIDER_ORDER`、`ANALYSIS_MODEL` 等，见 `backend/.env.example`）。
 
-1. 导师编排（导师 AI 编排任务）
-2. 分析智能体（论文分析与证据提取）
-3. 撰稿智能体（段落撰写）
-4. 稿件校验
-5. 配图智能体（科研配图）
-6. 引用智能体（证据清单）
-7. 导师终审（导师 AI 最终评审）
-
-触发示例：
-
-```json
-{
-  "workflow_id": "question_to_submission_paragraph",
-  "topic": "RAG for scientific writing",
-  "stage": "draft",
-  "question": "How should I structure method and experiment sections?",
-  "section": "method"
-}
-```
-
-`run` 之后编排自动执行，无需手动逐步点击。导师模型在 `backend/.env` 中配置 `MENTOR_MODEL`，缺省回落到 `ANALYSIS_MODEL`。前端左侧工作区提供轻量入口：**自动编排（Beta）**（一键编排 / 导出编排）。
-
-状态为 `needs_revision` 时，需修改正文并消除高风险校验项后再导出。`POST /api/workflows/{session_id}/resume` 示例：
-
-```json
-{
-  "overrides": {
-    "revised_draft": "your revised paragraph..."
-  }
-}
-```
-
-导出为三件套路径：`paragraph_path`、`figure_caption_path`、`evidence_path`。结果中还包含：`evidence_trace`、`step_trace`、`revision_history`。
-
-## Mentor-Skill 编排约定
-
-固定技能链：`mentor_dispatch_skill` → `analysis_agent_skill` → `writer_agent_skill` → `manuscript_validate_skill` → `figure_agent_skill` → `citation_agent_skill` → `mentor_review_skill`。
-
-质量门禁：高风险校验问题会导致 `needs_revision`；必须通过 `resume` 提交修订稿；仅当会话状态为 `completed` 时才允许导出。人机协同：降级运行（模型/配图回退）时请在提交前人工核对术语与配图说明一致性。
+- `POST /api/mentor/run`：请求体含 `goal`，可选 `topic`、`section`、`stage`、`reference_documents`。  
+- `GET /api/mentor/{session_id}`：查询同一会话结果（进程内存储，多 worker 部署需自行换持久化方案）。
 
 ## 示意图 / 配图故障排查
 
@@ -296,7 +198,7 @@ DISABLE_PROVIDERS=codex
 - 文本异常降级：核对 `GOOGLE_API_KEY`、`OPEN_API_KEY` 及模型名。
 - 配图失败：核对 `GLM_API_KEY`、`FIGURE_MODEL`、网络与代理。
 - `GET /api/status` 中 `generation_health.last_generation_error` 可看最近一次生成错误。
-- `GET /api/status` 还包含：`google_api_configured`、`open_api_configured`、`glm_api_configured`、`text_primary_provider`、`text_fallback_provider`、`retrieval_mode`、`vector_store_ready`、`knowledge_base_ready`、`last_retrieval_source`、`product_metrics`、`mentor_model`。
+- `GET /api/status` 还包含：`google_api_configured`、`open_api_configured`、`glm_api_configured`、`text_primary_provider`、`text_fallback_provider`、`retrieval_mode`、`vector_store_ready`、`knowledge_base_ready`、`last_retrieval_source`、`product_metrics` 等（开发环境下字段更全，见接口返回）。
 - 响应中的 `error_code` 可作定位参考：`MODEL_TIMEOUT`、`MODEL_NOT_FOUND`、`TEXT_PROVIDER_UNAVAILABLE`、`FIGURE_PROVIDER_UNAVAILABLE`、`CONFIG_MISSING`、`NETWORK_ERROR`、`RENDERER_UNAVAILABLE`、`INSUFFICIENT_EVIDENCE`。
 
 ## 验收测试基线
@@ -339,7 +241,7 @@ docker compose up --build
 
 本仓库作为持续演进的科研助手原型开源。
 
-- **涵盖**：本地部署、文档入库与检索、对话/写作/示意图/配图 API、Beta 工作流路径。
+- **涵盖**：本地部署、文档入库与检索、对话/写作/示意图/配图 API、Workspace AI 导师（Agent 编排）。
 - **不涵盖**：生产级多租户、严格 SLA、默认托管云形态。
 - **缺陷与需求**：GitHub Issues；**安全漏洞**：按 [`SECURITY.md`](SECURITY.md) 私密渠道报告。
 - **贡献与社区准则**：见 [`CONTRIBUTING.md`](CONTRIBUTING.md) 与 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)。
@@ -360,9 +262,9 @@ docker compose up --build
 ## 上线前自检
 
 - 安全：仓库无明文密钥；调试脚本仅读环境变量。
-- 稳定：`test_smoke.py`、`test_workflow_engine.py`、`test_chat_acceptance.py` 通过。
+- 稳定：`test_smoke.py`、`test_mentor.py`、`test_chat_acceptance.py` 通过（或 CI 自选子集）。
 - 可靠性体验：前端对对话/示意图/配图展示 `degraded`/`error_hint`。
-- 工作流可追溯：导出包含段落、配图说明、证据与步骤/修订痕迹。
+- 导师会话：`GET /api/mentor/{session_id}` 可回放进程内保存的结果（重启后不保留）。
 - 部署：`docker compose up --build` 可启动且 `/api/status` 核心字段正常。
 
 ## 执行类文档

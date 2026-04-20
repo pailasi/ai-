@@ -27,7 +27,7 @@ echo "Installing dependencies..."
 if [ ! -f ".env" ]; then
     echo "Creating backend/.env from template..."
     cp .env.example .env
-    echo "Update backend/.env with your GOOGLE_API_KEY before using online generation features."
+    echo "Edit backend/.env — see backend/.env.example (set at least one text provider: CODEX_API_KEY, GOOGLE_API_KEY, or OPEN_API_KEY)."
 fi
 
 echo "Starting API server on http://localhost:8000 ..."

@@ -100,7 +100,6 @@ class SmokeTests(unittest.TestCase):
         self.assertIn("generation_health", result)
         self.assertIn("routing_policy", result)
         self.assertIn("last_routing_trace", result)
-        self.assertIn("workflow_metrics", result)
         self.assertIn("retrieval_mode", result)
         self.assertIn("product_metrics", result)
         self.assertIn("stability_metric_definitions", result)
@@ -109,9 +108,6 @@ class SmokeTests(unittest.TestCase):
         self.assertIn("knowledge_base_ready", result)
         self.assertIn("last_retrieval_source", result)
         self.assertTrue(isinstance(result["retrieval_mode"], str) and len(result["retrieval_mode"]) > 0)
-        skill_ids = {item.get("skill_id") for item in result.get("skills", []) if isinstance(item, dict)}
-        self.assertIn("figure_audit_skill", skill_ids)
-        self.assertIn("figure_prompt_refine_skill", skill_ids)
 
     def test_documents_endpoint(self):
         response = self.client.get("/api/documents")
@@ -425,90 +421,6 @@ class SmokeTests(unittest.TestCase):
         self.assertEqual(attempts[0]["provider"], "openrouter")
         self.assertTrue(openrouter_mock.called)
 
-    def test_workflow_run_get_export(self):
-        validate_results = [
-            {
-                "summary": "method 段落识别到 1 个 high 风险问题。",
-                "issues": [
-                    {
-                        "category": "evidence",
-                        "severity": "high",
-                        "message": "缺少指标",
-                        "suggestion": "补充指标",
-                        "rewrite_example": "提升 3.2% [1]",
-                    }
-                ],
-                "high_risk_count": 1,
-                "can_export": False,
-                "next_action": "先修复 high 风险问题，再继续导出或提交。",
-            },
-            {
-                "summary": "method 段落识别到 0 个 high 风险问题。",
-                "issues": [],
-                "high_risk_count": 0,
-                "can_export": True,
-                "next_action": "可继续导出。",
-            },
-        ]
-
-        run_payload = {
-            "workflow_id": "question_to_submission_paragraph",
-            "topic": "Scientific writing with RAG",
-            "stage": "draft",
-            "question": "How to structure method and experiment sections?",
-            "section": "method",
-        }
-        with patch.object(self.main.research_service, "validate_manuscript", side_effect=validate_results):
-            run_resp = self.client.post("/api/workflows/run", json=run_payload)
-            self.assertEqual(run_resp.status_code, 200)
-            run_data = run_resp.json()
-            self.assertIn("session_id", run_data)
-            session_id = run_data["session_id"]
-            self.assertEqual(run_data.get("status"), "needs_revision")
-
-            resume_payload = {
-                "overrides": {
-                    "revised_draft": (
-                        "在方法部分，我们在公开数据集上设置统一训练预算，并与三类基线进行对比。"
-                        "实验结果显示 F1 提升 3.2%，并在不同随机种子下保持稳定 [1]。"
-                    )
-                }
-            }
-            resume_resp = self.client.post(f"/api/workflows/{session_id}/resume", json=resume_payload)
-            self.assertEqual(resume_resp.status_code, 200)
-            run_data = resume_resp.json()
-            self.assertEqual(run_data["status"], "completed")
-            self.assertIn("metrics", run_data)
-            self.assertIn("figure_attempts", run_data["metrics"])
-            self.assertIn("figure_audit", run_data.get("result", {}))
-            self.assertIn("workflow_metrics", run_data.get("result", {}))
-
-        get_resp = self.client.get(f"/api/workflows/{session_id}")
-        self.assertEqual(get_resp.status_code, 200)
-        get_data = get_resp.json()
-        self.assertEqual(get_data["session_id"], session_id)
-
-        export_resp = self.client.post(f"/api/workflows/{session_id}/export")
-        self.assertEqual(export_resp.status_code, 200)
-        export_data = export_resp.json()
-        self.assertIn("bundle_path", export_data)
-        self.assertIn("paragraph_path", export_data)
-        self.assertIn("figure_caption_path", export_data)
-        self.assertIn("evidence_path", export_data)
-
-    def test_workflow_missing_session_returns_404(self):
-        response = self.client.get("/api/workflows/does-not-exist")
-        self.assertEqual(response.status_code, 404)
-
-        resume_response = self.client.post(
-            "/api/workflows/does-not-exist/resume",
-            json={"overrides": {"revised_draft": "text"}},
-        )
-        self.assertEqual(resume_response.status_code, 404)
-
-        export_response = self.client.post("/api/workflows/does-not-exist/export")
-        self.assertEqual(export_response.status_code, 404)
-
     def test_status_redacts_debug_fields_in_production(self):
         with patch.object(self.main.settings, "app_env", "production"), patch.object(
             self.main.settings, "status_include_debug", True
@@ -516,8 +428,6 @@ class SmokeTests(unittest.TestCase):
             response = self.client.get("/api/status")
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertNotIn("workflow_metrics", data)
-        self.assertNotIn("skills", data)
         self.assertNotIn("vector_store_error", data)
 
     def test_api_key_protection_when_configured(self):

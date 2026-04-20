@@ -2,7 +2,7 @@ import os
 
 from fastapi import APIRouter, Depends
 
-from api.dependencies import require_api_access, research_service, settings, workflow_engine, workflow_registry
+from api.dependencies import require_api_access, research_service, settings
 from ops_contract import ERROR_CODE_ACTIONS, STABILITY_GATE_TARGETS, STABILITY_METRIC_DEFINITIONS
 
 router = APIRouter(dependencies=[Depends(require_api_access)])
@@ -32,11 +32,6 @@ async def api_status() -> dict[str, object]:
         "text_primary_provider": text_primary,
         "text_fallback_provider": text_fallback,
         "analysis_model": (settings.codex_text_model if codex_enabled else (settings.analysis_model or settings.google_model)),
-        "mentor_model": (
-            settings.codex_text_model
-            if codex_enabled
-            else (settings.mentor_model or settings.analysis_model or settings.google_model)
-        ),
         "diagram_model": (settings.codex_text_model if codex_enabled else (settings.diagram_model or settings.google_model)),
         "figure_provider": figure_provider,
         "figure_model": figure_model,
@@ -68,8 +63,6 @@ async def api_status() -> dict[str, object]:
                 "stability_metric_definitions": STABILITY_METRIC_DEFINITIONS,
                 "stability_gate_targets": STABILITY_GATE_TARGETS,
                 "error_code_actions": ERROR_CODE_ACTIONS,
-                "skills": workflow_registry.list_skills(),
-                "workflow_metrics": workflow_engine.workflow_metrics(),
             }
         )
     return payload

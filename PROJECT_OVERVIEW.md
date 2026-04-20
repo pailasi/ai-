@@ -18,38 +18,30 @@ Sci-Copilot 是一个本地科研助手原型，采用 FastAPI 单入口提供 A
 - 生成模型：Google GenAI（可选）/ GLM（可选）
 - 图渲染：Mermaid CLI（可选）
 
-### 导师 AI 多 Skill 编排（Beta）
+### AI 导师（Agent）
 
-工作流 ID：`question_to_submission_paragraph`
-
-执行顺序：
-1. `mentor_dispatch_skill`：导师分派任务与约束
-2. `analysis_agent_skill`：证据检索与写作建议
-3. `writer_agent_skill`：段落改写
-4. `manuscript_validate_skill`：结构化校验
-5. `figure_agent_skill`：论文配图
-6. `citation_agent_skill`：证据清单
-7. `mentor_review_skill`：导师最终评审
-
-人工接管点：
-- 若校验阶段存在 high 风险问题，workflow 状态会进入 `needs_revision`
-- 用户需通过 `POST /api/workflows/{session_id}/resume` 提交修订文本再继续
+- 入口：`POST /api/mentor/run`（自然语言目标 → LLM 规划 skill 顺序 → 调用 `ResearchService` → 总评）
+- 查询：`GET /api/mentor/{session_id}`（进程内会话，多实例部署需自行持久化）
+- 配置：与全局文本模型链路相同，见 `backend/.env.example`
 
 ## 实际 API（与代码一致）
 
 - `GET /`
 - `GET /health`
 - `GET /api/status`
+- `GET /api/documents`
 - `POST /api/documents/upload`
 - `POST /api/knowledge/ingest`
 - `POST /api/chat`
 - `POST /api/reasoning/method-compare`
 - `POST /api/diagram`
 - `POST /api/figure`
-- `POST /api/workflows/run`
-- `GET /api/workflows/{session_id}`
-- `POST /api/workflows/{session_id}/resume`
-- `POST /api/workflows/{session_id}/export`
+- `GET /api/figure/templates`
+- `POST /api/writing/help`
+- `POST /api/writing/validate`
+- `POST /api/writing/rewrite`
+- `POST /api/mentor/run`
+- `GET /api/mentor/{session_id}`
 
 ## 关键文件
 
@@ -58,6 +50,7 @@ Sci-Copilot 是一个本地科研助手原型，采用 FastAPI 单入口提供 A
 - `backend/reasoning/contracts.py`：工具化推理链路输入输出契约
 - `backend/schemas.py`：请求/响应模型
 - `backend/config.py`：配置管理
+- `backend/mentor.py`：AI 导师 Agent 编排
 - `frontend/index.html`：前端工作台
 - `start.sh` / `start.bat`：本地一键启动
 - `Dockerfile` / `docker-compose.yml`：容器化部署
@@ -65,7 +58,7 @@ Sci-Copilot 是一个本地科研助手原型，采用 FastAPI 单入口提供 A
 ## 运行说明
 
 1. 复制 `backend/.env.example` 为 `backend/.env`
-2. 按需配置 `GOOGLE_API_KEY`、`GLM_API_KEY`
+2. 打开 `backend/.env`，至少配置一条**文本**模型链路（`CODEX_API_KEY` 或 `GOOGLE_API_KEY` 或 `OPEN_API_KEY`）；配图再按需配置 `IMG_*` / `CODEX_FIGURE_MODEL` / `GLM_*`（详见 `.env.example` 内注释）
 3. 执行 `start.bat`（Windows）或 `./start.sh`（macOS/Linux）
 4. 打开 `http://localhost:8000`
 
@@ -81,7 +74,7 @@ Sci-Copilot 是一个本地科研助手原型，采用 FastAPI 单入口提供 A
 
 - 当前以本地单机使用为主，尚未引入用户系统与多租户隔离
 - 向量检索为轻量本地索引策略，适合原型验证与小规模文献集
-- 测试与 CI 能力仍在建设中（已覆盖 smoke + workflow/skills 基础单测）
+- 测试与 CI 能力仍在建设中（已覆盖 smoke、mentor、对话验收等基础单测）
 
 ## 当前上线准备状态（Beta）
 
@@ -89,13 +82,9 @@ Sci-Copilot 是一个本地科研助手原型，采用 FastAPI 单入口提供 A
 - 质量门禁：新增 `backend/test_chat_acceptance.py`，支持严格门禁与可选 live 验收。
 - 运行口径：`/api/status` 提供稳定性指标定义、门槛目标和错误码动作映射（由后端统一输出）。
 - 可解释性：前端已显式展示 `degraded` / `error_code` / `error_hint`，避免误判结果可信度。
-- 可追溯性：workflow 结果与导出包包含证据追踪、步骤追踪和修订历史。
+- 可追溯性：写作/方法对比等接口在响应中带证据与来源字段；导师返回 `plan`/`steps`/`summary`。
 - 待补强：多用户隔离、线上监控告警、以及更大规模题集评测仍需继续建设。
 
-## 导出条件
+## 会话与导出
 
-- 仅当 workflow 会话状态为 `completed` 才允许导出
-- 导出内容包含段落、图注和证据清单三件套：
-  - `paragraph_path`
-  - `figure_caption_path`
-  - `evidence_path`
+- 导师会话 `session_id` 仅存于当前进程内存，重启后丢失；生产多 worker 需外存。
