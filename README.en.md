@@ -7,7 +7,7 @@ Sci-Copilot is a research assistant prototype that combines four practical workf
 - Upload PDF papers into a local workspace
 - Build a searchable knowledge base from those papers
 - Ask grounded questions against indexed content
-- Generate Mermaid-based research diagrams, with optional PNG preview
+- Generate research diagrams, with optional PNG preview
 
 The project now uses a single canonical entrypoint: FastAPI serves both the API and the web UI.
 <img width="2560" height="1108" alt="86d8a39a-1500-4ae4-9873-824584029466" src="https://github.com/user-attachments/assets/824d839a-47ec-4eba-a005-65294322784e" />
