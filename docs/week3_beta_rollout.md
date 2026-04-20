@@ -10,7 +10,7 @@ This playbook covers gray release, issue triage, and reporting.
   - `/api/status` fields are present and valid
 - Validate mandatory tests:
   - `test_smoke.py`
-  - `test_workflow_engine.py`
+  - `test_mentor.py`
   - `test_chat_acceptance.py`
 
 ## Day 12: Small-Group Beta

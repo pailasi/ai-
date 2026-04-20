@@ -30,7 +30,7 @@
 
 - `cd backend`
 - `python -m unittest test_smoke.py`
-- `python -m unittest test_workflow_engine.py`
+- `python -m unittest test_mentor.py`
 
 若改动触及特定模块，请一并运行相关测试文件。
 

@@ -24,7 +24,7 @@ Run locally before opening release PR:
 
 ```bash
 cd backend
-python -m unittest test_smoke.py test_workflow_engine.py test_reasoning_contracts.py test_skills_registry.py test_document_state_store.py test_telemetry_store.py
+python -m unittest test_smoke.py test_mentor.py test_reasoning_contracts.py test_document_state_store.py test_telemetry_store.py
 python -m pip_audit -r requirements.txt
 ```
 

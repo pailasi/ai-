@@ -37,11 +37,11 @@ This checklist is the single execution reference for Week 1.
 ## Day 4: Full Regression
 
 - Run:
-  - `python -m unittest test_smoke.py test_workflow_engine.py test_chat_acceptance.py`
+  - `python -m unittest test_smoke.py test_mentor.py test_chat_acceptance.py`
 - Capture failures into categories:
   - provider/auth
   - retrieval/knowledge
-  - workflow gating
+  - mentor / multi-step flows
   - rendering
 
 ## Day 5: Freeze Rules

@@ -30,7 +30,7 @@ Run these checks before opening a PR:
 
 - `cd backend`
 - `python -m unittest test_smoke.py`
-- `python -m unittest test_workflow_engine.py`
+- `python -m unittest test_mentor.py`
 
 If your change touches a specific area, run the related test modules too.
 
